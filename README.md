@@ -32,24 +32,25 @@ python scripts/package_production.py RUN_DIR --mode portable
 - 场景资产：按稳定场景名固定，普通光线、时间、天气变化不拆新场景。
 - 资产提示词输入保持简单：`story.md + style_bible.md + asset_type + asset_name + output_prompt_path`。
 - 分镜参考图：每个 `S###` 必须标明首帧、尾帧或关键帧，并判断是否引用上一分镜作站位参考。
-- 视频提示词：可在同一 `scene_id` 内合并连续 `S###`，合并总时长必须不超过 15 秒。
+- 视频提示词：可在同一 `scene_id` 内合并连续 `S###`，合并总时长必须不超过 30 秒。
 
 ## 推荐试跑顺序
 
 1. 执行 `scripts/init_local_run.ps1 -ProjectSlug your-project-slug` 初始化本地创作目录。
 2. 填写 `local_runs/YYYY-MM-DD/your-project-slug/inputs/idea_brief.md`。
-3. 运行 `skills/story_generation.md`，只产出 `outputs/story.md`。
-4. 用户与剧本专家反复讨论，直到用户确认剧本可以进入下一阶段。
-5. 运行 `skills/art_direction.md`，用户确认后产出 `outputs/style_bible.md`。
-6. 运行 `skills/storyboard_director.md`，产出 `outputs/storyboard.json`。
-7. 运行 `skills/asset_executor.md`，产出 `outputs/asset_manifest.json` 和 `outputs/shot_asset_map.json`。
-8. 根据 `asset_manifest.json` 里的 `output_prompt_path`，循环运行人物、场景、必要道具提示词生成器。
-9. 每次提示词生成器只输入：剧本、风格圣经、资产类型、资产名和输出路径。
-10. 运行或手动执行 `skills/image_generation_executor.md` 生成资产图片；每个任务只生成一张图片文件。
-11. 将有效资产图片回填到 `outputs/assets/characters/`、`outputs/assets/scenes/`、`outputs/assets/props/`。
-12. 运行 `skills/storyboard_prompt_generator.md`，产出 `outputs/storyboard_prompts.md`，明确每个分镜的帧角色和上一分镜站位参考判断。
-13. 生成分镜参考图，并回填到 `outputs/storyboards/S001.png`、`S002.png` 等。
-14. 运行 `skills/video_prompt_generator.md`，根据连续 shot、同一 scene_id 和 15 秒上限生成 `outputs/video_prompts.md` 与 `outputs/video_prompts.json`。
+3. 运行创意阶段（`idea_generation` 策略槽对应的 Skill，如 `advertising-idea-strategy`），把用户的模糊想法提炼为 `outputs/brief.md` 创意简报。
+4. 用户确认创意简报后，运行 `skills/story_generation.md`，基于 `brief.md` 产出 `outputs/story.md`。
+5. 用户与剧本专家反复讨论，直到用户确认剧本可以进入下一阶段。
+6. 运行 `skills/art_direction.md`，用户确认后产出 `outputs/style_bible.md`。
+7. 运行 `skills/storyboard_director.md`，产出 `outputs/storyboard.json`。
+8. 运行 `skills/asset_executor.md`，产出 `outputs/asset_manifest.json` 和 `outputs/shot_asset_map.json`。
+9. 根据 `asset_manifest.json` 里的 `output_prompt_path`，循环运行人物、场景、必要道具提示词生成器。
+10. 每次提示词生成器只输入：剧本、风格圣经、资产类型、资产名和输出路径。
+11. 运行或手动执行 `skills/image_generation_executor.md` 生成资产图片；每个任务只生成一张图片文件。
+12. 将有效资产图片回填到 `outputs/assets/characters/`、`outputs/assets/scenes/`、`outputs/assets/props/`。
+13. 运行 `skills/storyboard_prompt_generator.md`，产出 `outputs/storyboard_prompts.md`，明确每个分镜的帧角色和上一分镜站位参考判断。
+14. 生成分镜参考图，并回填到 `outputs/storyboards/S001.png`、`S002.png` 等。
+15. 运行 `skills/video_prompt_generator.md`，根据连续 shot、同一 scene_id 和 30 秒上限生成 `outputs/video_prompts.md` 与 `outputs/video_prompts.json`。
 
 ## 输出目录
 

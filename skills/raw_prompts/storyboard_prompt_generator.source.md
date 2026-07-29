@@ -55,11 +55,22 @@ source_path: ./outputs/storyboards/S###.png 或 none
 reference_purpose: placement_anchor 或 none
 reason: 简述判断理由。
 
-## 资产声明区
-列出来自 `shot_asset_map.json` 的人物、场景、必要道具。
+## 资产引用
+显式列出本分镜引用的所有资产，写明引用类型和引用目的。格式：
+
+- 人物：@{character_asset_name}（如：@林小满_雨夜居家装）
+- 场景：@{scene_asset_name}（如：@雨夜客厅场景）
+- 物品：@{prop_asset_name}（出现{recurrence_count}次，本镜为第{n}次出现）
+
+物品引用规则：
+- 关键物品（is_key_item=true）必须列出，并标注总出现次数和本镜是第几次出现。
+- 普通道具（is_key_item=false）若在本镜被人物交互，也需列出。
+- 仅作为背景的普通道具可不列出。
 
 ## 中文分镜图提示词
 将当前 shot 的 `framing`、`camera_move` 和 `action_desc` 改写为静态分镜参考图提示词。若引用上一分镜，必须写明只继承站位、朝向、空间比例和连续性。画面无字幕、无 Logo、无水印。
+
+分镜提示词必须与"资产引用"区列出的资产保持一致：人物外观、场景空间、关键物品特征都需与对应资产提示词的描述对齐。关键物品的特征描述必须与 prop_prompt_generator 中的一致性锁定一致。
 </OutputFormat>
 
 <SelfCheck>
@@ -69,4 +80,7 @@ reason: 简述判断理由。
 - 引用上一分镜时是否只作为站位参考？
 - 是否没有跨 `scene_id` 引用上一分镜？
 - 是否没有新增资产？
+- 资产引用区是否显式列出了人物、场景、物品？
+- 关键物品是否标注了总出现次数和本镜是第几次出现？
+- 分镜提示词是否与资产引用区列出的资产描述对齐？
 </SelfCheck>

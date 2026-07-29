@@ -467,11 +467,10 @@ def validate_production_level(run_dir: Path) -> None:
         fail(f"production: final package status is {final.get('status')}")
     checkpoint = read_json(run_dir / "checkpoint.json")
     if checkpoint.get("vertical", {}).get("id") == "advertising":
-        contract_path = outputs(run_dir) / "content_contract.json"
-        validate_schema_file(contract_path, "content_contract.schema.json")
-        contract = read_json(contract_path)
-        if contract.get("packaging_reference_status") not in {"official_reference_provided", "brand_verified"}:
-            fail("production: advertising package lacks official/verified packaging reference")
+        story_path = outputs(run_dir) / "story.md"
+        story_text = story_path.read_text(encoding="utf-8")
+        if "## 商业信息" not in story_text:
+            fail("production: advertising story.md missing '## 商业信息' section")
     ok("production level")
 
 

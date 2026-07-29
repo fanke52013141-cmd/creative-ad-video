@@ -85,7 +85,7 @@ local_runs/YYYY-MM-DD/project_slug/notes.md
    - `outputs/shot_asset_map.json`
    - `outputs/assets/`
 3. 只在同一 `scene_id` 内合并连续 `S###`。
-4. 合并总时长必须 `<=15s`。
+4. 合并总时长必须 `<= {max_generated_clip_seconds}s`。
 5. 每条 `V###` 必须写：
    - `merge_decision`
    - `frame_references`

@@ -9,7 +9,6 @@ description: Build advertising-focused storyboard-image prompts from shared stor
 
 - `outputs/storyboard.json`, `outputs/style_bible.md`, and `outputs/shot_asset_map.json`.
 - Approved asset images and prior storyboard reference when allowed by the shared continuity policy.
-- `outputs/content_contract.json`.
 - `config/verticals/advertising.yaml`.
 
 ## Output

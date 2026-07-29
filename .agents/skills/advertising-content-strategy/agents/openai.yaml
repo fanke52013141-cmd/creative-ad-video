@@ -1,7 +1,7 @@
 interface:
   display_name: "Advertising Content Strategy"
-  short_description: "把广告 brief 转为可验证的广告叙事与内容契约"
-  default_prompt: "Use $advertising-content-strategy to create an evidence-aware advertising narrative and content contract from my brief."
+  short_description: "把广告 brief 转为可验证的广告叙事剧本"
+  default_prompt: "Use $advertising-content-strategy to create an evidence-aware advertising narrative from my brief."
 policy:
   allow_implicit_invocation: true
 

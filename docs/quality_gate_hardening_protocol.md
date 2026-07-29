@@ -64,7 +64,7 @@
 - `video_prompts.json` 没有覆盖每个分镜，或某个分镜被覆盖多次。
 - `source_shots` 为空、重复、乱序、不连续或引用未知分镜。
 - `scene_id` 与所有 `source_shots` 不一致。
-- 合并总时长超过 15 秒。
+- 合并总时长超过 {max_generated_clip_seconds} 秒。
 - `duration_seconds` 不等于 `source_shots` 的时长总和。
 - 合并多个 shot 但 `merge_decision.strategy` 不是 `merged_*`。
 - 单个 shot 却使用 `merged_*`。

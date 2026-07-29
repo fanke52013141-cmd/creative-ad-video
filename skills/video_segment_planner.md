@@ -18,7 +18,7 @@ Read `references/expert_methodologies.md` section `Shot joining` before planning
   "storyboard_path": "./outputs/storyboard.json",
   "shot_asset_map_path": "./outputs/shot_asset_map.json",
   "output_path": "./outputs/video_segment_plan.json",
-  "max_segment_seconds": 15
+  "max_segment_seconds": "{从vertical配置的max_generated_clip_seconds注入}"
 }
 ```
 

@@ -85,14 +85,14 @@ outputs/video_prompts.json
 
 1. `shot_id` 连续且顺序一致。
 2. `scene_id` 相同。
-3. 合并后 `duration_seconds` 总和 `<=15`。
+3. 合并后 `duration_seconds` 总和 `<= {max_generated_clip_seconds}`。
 4. 没有场景切换、时间跳跃或叙事空间切换。
 5. 动作、情绪、站位或镜头推进可以自然连续。
 
 必须拆分：
 
 - `scene_id` 不同。
-- 合并后超过 15 秒。
+- 合并后超过 {max_generated_clip_seconds} 秒。
 - 时间或叙事空间跳跃。
 - 动作不连续，合并后提示词含混。
 
@@ -145,7 +145,7 @@ python scripts/validate_seedance_video_prompts.py local_runs/YYYY-MM-DD/project_
 
 - 每个 storyboard shot 被且仅被一个 `V###` 覆盖。
 - 合并的 source shots 连续、有序、同一 `scene_id`。
-- `duration_seconds` 等于 source shots 时长总和，且不超过 15 秒。
+- `duration_seconds` 等于 source shots 时长总和，且不超过 {max_generated_clip_seconds} 秒。
 - 每条 `V###` 有 `merge_decision` 和 `frame_references`。
 - Markdown 包含 `【自检通过项】`、`【资产声明区】`、`【中文视频提示词】`。
 - 不输出英文 Prompt 或中英对照。

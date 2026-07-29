@@ -1,6 +1,6 @@
 ---
 name: advertising-art-direction
-description: Translate an approved advertising content contract, brand assets, product facts, audience, platform, and references into an executable commercial visual direction and shared style bible. Use for commercial art direction, brand visual strategy, product-ad look development, color and lighting systems, product hero rules, moodboard grammar, platform adaptation, and AI visual consistency. Do not write the ad narrative, storyboard shots, asset list, or final generation prompts.
+description: Translate an approved advertising narrative, brand assets, product facts, audience, platform, and references into an executable commercial visual direction and shared style bible. Use for commercial art direction, brand visual strategy, product-ad look development, color and lighting systems, product hero rules, moodboard grammar, platform adaptation, and AI visual consistency. Do not write the ad narrative, storyboard shots, asset list, or final generation prompts.
 ---
 
 # Advertising art direction
@@ -11,7 +11,7 @@ Run after `advertising-content-strategy` is approved and before `advertising-sto
 
 ## Inputs
 
-- `outputs/content_contract.json` and approved `outputs/story.md`.
+- Approved `outputs/story.md`.
 - Brand guide, product/packaging reference images, required logos, fonts, colors, claims and restrictions supplied by the user.
 - `config/verticals/advertising.yaml`.
 - Optional visual references, treated as visual grammar rather than works to copy.

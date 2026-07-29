@@ -56,16 +56,16 @@
 
 1. `shot_id` 连续。
 2. `scene_id` 相同。
-3. 合并后 `duration_seconds` 总和 `<=15`。
+3. 合并后 `duration_seconds` 总和 `<= {max_generated_clip_seconds}`。
 4. 没有场景切换、时间跳跃或叙事空间切换。
 5. 动作、情绪、站位或镜头推进可以自然连续。
 
-单个分镜小于 15 秒不代表必须单独生成；如果同场景、动作连续、总时长不超过 15 秒，优先合并。
+单个分镜小于 {max_generated_clip_seconds} 秒不代表必须单独生成；如果同场景、动作连续、总时长不超过 {max_generated_clip_seconds} 秒，优先合并。
 
 必须拆分：
 
 - `scene_id` 不同。
-- 合并后超过 15 秒。
+- 合并后超过 {max_generated_clip_seconds} 秒。
 - 时间或叙事空间跳跃。
 - 动作不连续，合并后提示词含混。
 
@@ -138,7 +138,7 @@ reference_purpose: placement_anchor
 - [ ] 每个 storyboard shot 都被且仅被一个 `V###` 覆盖。
 - [ ] 合并的 source shots 连续。
 - [ ] 合并的 source shots 同一 `scene_id`。
-- [ ] 合并总时长 `<=15` 秒。
+- [ ] 合并总时长 `<= {max_generated_clip_seconds}` 秒。
 - [ ] 每条 `V###` 有 `merge_decision`。
 - [ ] 每条 `V###` 有 `frame_references`。
 - [ ] 每条提示词有资产声明区。

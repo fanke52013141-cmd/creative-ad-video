@@ -13,5 +13,5 @@
 | Asset Image Generation | 可用即梦、ChatGPT、Codex 或外部工具；每个 asset_image_task 只生成一张图片文件；人物资产图允许 21:9 多视角单图 | P0 |
 | Storyboard Prompts | 每个 shot 都有分镜图提示词；`frame_role` 必须与视频段计划一致；必须判断上一分镜引用；不得跨 `scene_id` 引用 | P0 |
 | Storyboard Image Generation | 每个 `S###` 生成一张分镜参考图；需要站位连续时可引用上一分镜图作为 placement anchor | P0 |
-| Video Prompts | `video_prompts.md/json` 齐全，中文-only，无默认 `@PROP`；可合并同 scene 连续 shots；合并总时长 `<=15s`；每条 `V###` 必须有 `merge_decision` 和 `frame_references` | P0 |
+| Video Prompts | `video_prompts.md/json` 齐全，中文-only，无默认 `@PROP`；可合并同 scene 连续 shots；合并总时长 `<= {max_generated_clip_seconds}s`；每条 `V###` 必须有 `merge_decision` 和 `frame_references` | P0 |
 | Final Handoff | 只交付 story、video prompts、角色资产、场景资产和分镜图 | P0 |

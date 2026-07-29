@@ -86,7 +86,7 @@ story_generation
 - [ ] 每个 `V###` 的 `source_shots` 是非空、连续、有序的 `S###` 列表。
 - [ ] 每个 `V###` 的所有 `source_shots` 属于同一 `scene_id`。
 - [ ] 每个 `V###` 的 `duration_seconds` 等于其 `source_shots` 时长总和。
-- [ ] 每个 `V###` 的总时长不超过 15 秒。
+- [ ] 每个 `V###` 的总时长不超过 {max_generated_clip_seconds} 秒。
 - [ ] 合并多个 shot 时，`merge_decision.strategy` 使用 `merged_*`。
 - [ ] 单个 shot 不使用 `merged_*` 策略。
 - [ ] 每个 `V###` 的 `frame_references` 覆盖且只覆盖当前 `source_shots`。

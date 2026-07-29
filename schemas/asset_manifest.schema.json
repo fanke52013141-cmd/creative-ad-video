@@ -58,6 +58,9 @@
           "output_prompt_path": { "type": ["string", "null"] },
           "prompt_scope": { "type": ["string", "null"] },
           "handling_policy": { "type": ["string", "null"] },
+          "is_key_item": { "type": ["boolean", "null"], "description": "是否为关键物品（贯穿全片、多次出现、对剧情推进有作用的道具）。仅 props 使用。" },
+          "recurrence_count": { "type": ["integer", "null"], "minimum": 0, "description": "该道具在分镜中出现的总次数。仅 props 使用。" },
+          "appearances": { "type": ["array", "null"], "items": { "type": "string" }, "description": "该道具出现的 shot_id 列表。仅 props 使用。" },
           "notes": { "type": ["string", "null"] }
         }
       }

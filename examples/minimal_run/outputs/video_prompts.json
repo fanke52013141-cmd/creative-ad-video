@@ -8,7 +8,7 @@
       "scene_id": "SC001",
       "merge_decision": {
         "strategy": "merged_strong_action_continuity",
-        "reason": "S001 与 S002 属于同一雨夜客厅场景，动作和情绪从听电话自然推进到近景反应，且总时长 10 秒，未超过 15 秒；合并可减少手部、手机位置和情绪状态漂移。",
+        "reason": "S001 与 S002 属于同一雨夜客厅场景，动作和情绪从听电话自然推进到近景反应，且总时长 10 秒，未超过 {max_generated_clip_seconds} 秒；合并可减少手部、手机位置和情绪状态漂移。",
         "continuity_risk": "high"
       },
       "frame_references": [

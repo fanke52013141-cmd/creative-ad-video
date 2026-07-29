@@ -5,13 +5,10 @@ description: 保留当前项目的故事驱动型短视频生产方向。
 
 skill_overrides: {}
 
-content_contract:
-  required_sidecar: false
-
 production:
   aspect_ratios: ["9:16"]
   duration_presets_seconds: [15, 30, 60]
-  max_generated_clip_seconds: 15
+  max_generated_clip_seconds: 30
 
 required_asset_roles:
   - character_turnaround

@@ -6,6 +6,9 @@ vertical_selection:
   checkpoint_field: vertical.id
 
 strategy_slots:
+  idea_generation:
+    default_skill: idea_generation
+    output: ./outputs/brief.md
   content_strategy:
     default_skill: story_generation
     output: ./outputs/story.md
@@ -21,6 +24,10 @@ strategy_slots:
     default_skill: storyboard_visual_review
 
 stages:
+  - id: idea_generation
+    type: strategy
+    slot: idea_generation
+    approval_required: true
   - id: story_generation
     type: strategy
     slot: content_strategy
@@ -45,6 +52,8 @@ stages:
   - id: asset_image_generation
     type: stable_core
     skill: image_generation_executor
+    optional: true
+    note: "可跳过：提示词产出后可手动上传图片，用 register_image_result.py 回填"
   - id: generated_asset_review
     type: quality_gate
     skill: generated_asset_review
@@ -58,6 +67,8 @@ stages:
   - id: storyboard_image_generation
     type: stable_core
     skill: image_generation_executor
+    optional: true
+    note: "可跳过：提示词产出后可手动上传图片，用 register_image_result.py 回填"
   - id: storyboard_visual_review
     type: quality_gate
     skill: storyboard_visual_review

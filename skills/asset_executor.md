@@ -90,6 +90,23 @@ asset_type + asset_name + output_prompt_path
    - 剧情关键、反复出现、需要特写、外形复杂或状态变化明显的道具。
    - 才生成独立道具资产提示词。
 
+## Key Item Marking
+
+对于道具资产（props），在 `asset_manifest.json` 中额外标记关键物品和出现次数：
+
+- `is_key_item`（布尔）：是否为关键物品。关键物品 = 贯穿全片、多次出现、对剧情推进有作用的道具（如信件、钥匙、礼物等）。
+- `recurrence_count`（整数）：该道具在分镜中出现的总次数。
+- `appearances`（字符串数组）：该道具出现的 `shot_id` 列表。
+
+判断规则：
+- 道具在 2 个及以上分镜出现，且对剧情有推进作用 → `is_key_item: true`
+- 道具只在 1 个分镜出现，或仅为背景物件 → `is_key_item: false`
+- `recurrence_count` 和 `appearances` 从 `shot_asset_map.json` 统计得出
+
+这些字段供下游 `prop_prompt_generator` 和 `storyboard_prompt_generator` 使用：
+- 关键物品的提示词强调外观一致性锁定
+- 分镜提示词的资产引用区会标注关键物品及其出现次数
+
 ## asset_manifest.json Contract
 
 ```json
@@ -130,8 +147,23 @@ asset_type + asset_name + output_prompt_path
       "seedance_label": "手机",
       "generation_required": false,
       "handling_policy": "text_prompt_control",
+      "is_key_item": false,
+      "recurrence_count": 1,
+      "appearances": ["S001"],
       "output_prompt_path": null,
       "notes": "普通手机不生成独立道具图，后续视频提示词正文控制"
+    },
+    {
+      "asset_type": "prop",
+      "asset_name": "信件",
+      "seedance_label": "信件",
+      "generation_required": true,
+      "handling_policy": "generate_independent_prop",
+      "is_key_item": true,
+      "recurrence_count": 3,
+      "appearances": ["S001", "S005", "S012"],
+      "output_prompt_path": "./outputs/assets/props/prompts/信件.md",
+      "notes": "关键物品，贯穿全片3次出现，需一致性锁定"
     }
   ]
 }
@@ -181,15 +213,16 @@ asset_type + asset_name + output_prompt_path
 
 1. 读取 `story.md`，识别剧情中的人物、地点、关键道具和用户参考素材关系。
 2. 读取 `storyboard.json`，按 shot 判断实际出现的人物状态、场景和核心剧情道具。
-3. 只按持续可见变化拆人物变体，命名为 `人物稳定名_变体名`，禁止“状态”后缀。
+3. 只按持续可见变化拆人物变体，命名为 `人物稳定名_变体名`，禁止"状态"后缀。
 4. 不默认拆出人脸大头特写和全身妆造。
 5. 为场景选择稳定场景名，不因普通光影、时间、天气变化新建场景资产。
 6. 只保留核心剧情道具；普通背景小物件不进资产清单。
 7. 判断 `generation_required` 和 `handling_policy`。
-8. 为需要生成提示词的资产写入单个 `output_prompt_path`。
-9. 写入 `asset_manifest.json`。
-10. 为每个 shot 写入 `shot_asset_map.json`。
-11. 校验所有映射资产都存在于资产清单。
+8. 统计每个道具在分镜中的出现次数和出现位置，标记 `is_key_item`、`recurrence_count`、`appearances`。
+9. 为需要生成提示词的资产写入单个 `output_prompt_path`。
+10. 写入 `asset_manifest.json`。
+11. 为每个 shot 写入 `shot_asset_map.json`。
+12. 校验所有映射资产都存在于资产清单。
 
 ## Quality Gate
 
@@ -202,6 +235,8 @@ asset_type + asset_name + output_prompt_path
 - [ ] 只有空间结构或地点变化才新建场景资产。
 - [ ] 道具只保留核心剧情道具。
 - [ ] 普通背景道具没有强行生成独立资产图。
+- [ ] 道具资产包含 `is_key_item`、`recurrence_count`、`appearances` 字段。
+- [ ] 关键物品（出现≥2次且有剧情作用）被正确标记为 `is_key_item: true`。
 - [ ] 每个需要生成提示词的资产只有一个 `output_prompt_path`。
 - [ ] 没有输出 `asset_prompt_tasks.json`、`task_id`、`asset_payload` 或 `prompt_outputs` 数组。
 - [ ] 每个 shot 都存在映射记录。

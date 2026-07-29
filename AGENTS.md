@@ -18,7 +18,7 @@ A vertical profile may replace strategy Skills and add quality gates. It must no
 
 ## Stable contracts
 
-- Story/content output: `outputs/story.md`. A vertical may add structured sidecars such as `outputs/content_contract.json`, but must not remove `story.md`.
+- Story/content output: `outputs/story.md`. Vertical-specific business information (e.g. product, CTA, evidence) lives inside `story.md` under a dedicated section, not in a separate sidecar file.
 - Art direction output: `outputs/style_bible.md`.
 - Storyboard output: `outputs/storyboard.json`.
 - Asset outputs: `outputs/asset_manifest.json` and `outputs/shot_asset_map.json`.

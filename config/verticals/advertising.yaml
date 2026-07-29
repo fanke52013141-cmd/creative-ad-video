@@ -4,22 +4,18 @@ name: 广告短视频
 description: 面向品牌广告、商品广告和效果广告的短视频生产包。
 
 skill_overrides:
+  idea_generation: advertising-idea-strategy
   content_strategy: advertising-content-strategy
   art_direction: advertising-art-direction
   storyboard_strategy: advertising-storyboard-strategy
   prompt_strategy: advertising-prompt-strategy
   vertical_quality_gate: advertising-quality-gate
 
-content_contract:
-  required_sidecar: true
-  path: ./outputs/content_contract.json
-  schema: ./schemas/content_contract.schema.json
-
 production:
   aspect_ratios: ["9:16", "1:1", "16:9"]
   duration_presets_seconds: [6, 15, 30]
-  default_duration_seconds: 15
-  max_generated_clip_seconds: 15
+  default_duration_seconds: 30
+  max_generated_clip_seconds: 30
   hook_deadline_seconds: 3
 
 required_asset_roles:

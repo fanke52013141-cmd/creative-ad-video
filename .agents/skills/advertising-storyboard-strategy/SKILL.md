@@ -1,13 +1,12 @@
 ---
 name: advertising-storyboard-strategy
-description: Convert an approved advertising narrative, content contract, and style bible into the shared shot-level storyboard JSON with clear advertising functions, timing, product/brand/claim/CTA sequencing, and generatable actions. Use for brand, product, performance, ecommerce, social, app-install, lead-generation, and promotional ad storyboards. Do not generate images, asset prompts, or final video prompts.
+description: Convert an approved advertising narrative and style bible into the shared shot-level storyboard JSON with clear advertising functions, timing, product/brand/claim/CTA sequencing, and generatable actions. Use for brand, product, performance, ecommerce, social, app-install, lead-generation, and promotional ad storyboards. Do not generate images, asset prompts, or final video prompts.
 ---
 
 # Advertising storyboard strategy
 
 ## Inputs
 
-- `outputs/content_contract.json`.
 - Approved `outputs/story.md` and `outputs/style_bible.md`.
 - `config/verticals/advertising.yaml`.
 - User-provided product and brand references.

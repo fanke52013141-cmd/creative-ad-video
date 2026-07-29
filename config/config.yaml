@@ -132,7 +132,7 @@ video_prompt_policy:
   merge_requirements:
     - "shot_id_contiguous"
     - "same_scene_id"
-    - "duration_sum_lte_15s"
+    - "duration_sum_lte_max"
     - "duration_seconds_equals_source_shot_sum"
     - "no_scene_time_or_story_space_jump"
   required_json_fields:

@@ -46,13 +46,13 @@
 允许合并必须同时满足：
 1. `shot_id` 连续。
 2. `scene_id` 相同。
-3. 合并后 `duration_seconds` 总和 `<=15`。
+3. 合并后 `duration_seconds` 总和 `<= {max_generated_clip_seconds}`。
 4. 没有场景切换、时间跳跃或叙事空间切换。
 5. 动作、情绪、站位或镜头推进可以自然连续。
 
 优先合并：同一动作链、同一人物状态、同一道具交互、同一空间站位、景别变化但动作连续。
 
-必须拆分：跨 `scene_id`、超过 15 秒、时间/叙事空间跳跃、动作不连续。
+必须拆分：跨 `scene_id`、超过 {max_generated_clip_seconds} 秒、时间/叙事空间跳跃、动作不连续。
 </MergePolicy>
 
 <FrameReferencePolicy>
@@ -169,7 +169,7 @@ reference_purpose: placement_anchor
 1. 每个 `S###` 是否被且仅被一个 `V###` 覆盖。
 2. 合并对象是否是连续 S。
 3. 是否跨 `scene_id` 合并；如有必须拆分。
-4. 合并后时长是否 `<=15s`。
+4. 合并后时长是否 `<= {max_generated_clip_seconds}s`。
 5. 每条 `V###` 是否包含 `merge_decision` 和 `frame_references`。
 6. 正文引用与声明区是否完全一致。
 7. 抽象词是否已转译为可见动作、光影、声音或空间关系。

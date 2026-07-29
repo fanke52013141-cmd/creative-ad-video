@@ -91,7 +91,7 @@
     "storyboard_visual_review_required": true,
     "video_prompt_merge_decision_required": true,
     "video_prompt_frame_references_required": true,
-    "video_prompt_duration_lte_15s": true
+    "video_prompt_duration_lte_max": true
   },
   "next_phase": {
     "skill": "story_generation",
