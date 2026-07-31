@@ -1,345 +1,350 @@
-# AI 视频智能生产系统 — 完整流程图
+# AI 视频智能生产系统 — 正式流程图
 
-> 版本：v3.0  日期：2026-07-29
-> 原则：一个项目对应一种垂类；默认策略层全部去掉，只做广告；每个步骤最小且必要输入
+> 版本：v3.1  
+> 更新日期：2026-08-01  
+> 目标：让流程说明与 `scripts/pipeline_runtime.py`、阶段 Skill 和质量门保持一致。
+
+## 0. 解释优先级
+
+本文件是流程说明，不是状态机本身。出现不一致时，按以下顺序判断：
+
+1. `scripts/pipeline_runtime.py` 的 `STAGES`
+2. 当前阶段 Skill 的 Inputs / Outputs / Quality Gate
+3. `scripts/stage_gate.py` 与 `scripts/validate_project.py`
+4. 本流程图、README 和其他说明文档
+
+任何下游阶段都不得仅凭文档描述绕过上游门禁。
 
 ---
 
-## 一、整体流程总览
+## 1. 整体流程
+
+创意简报属于受控状态机之前的前置创意步骤。正式状态机从剧本生成开始。
 
 ```mermaid
 flowchart TD
-    START([开始]) --> AI1
-    AI1[【AI】创意生成<br/>用户想法 → 创意简报] --> S1
-    S1[创意确认] --> AI2
-    AI2[【AI】剧本生成<br/>创意简报 → 剧本] --> S2
-    S2[剧本确认] --> AI3
-    AI3[【AI】艺术方向<br/>剧本 → 风格圣经] --> S3
-    S3[风格确认] --> AI4
-    AI4[【AI】分镜导演<br/>剧本+风格 → 分镜表] --> S4
-    S4[分镜审核] --> AI5
-    AI5[【AI】资产执行官<br/>剧本+分镜表 → 资产清单] --> AI6
-    AI5 --> AI7
-    AI5 --> AI8
-    AI6[【AI】人物提示词<br/>21:9 单图]
-    AI7[【AI】场景提示词]
-    AI8[【AI】物品提示词<br/>仅反复出现的关键物品]
-    AI6 --> AI9[【AI】分镜提示词]
-    AI7 --> AI9
-    AI8 --> AI9
-    AI9 --> AI10[【AI】视频段规划<br/>合并分镜为视频段]
-    AI10 --> AI11[【AI】视频提示词]
-    AI11 --> AI12[【AI】质量门]
-    AI12 --> OPT{需要生图?}
-    OPT -->|是| IMG[生图执行<br/>可选]
-    OPT -->|否| END
-    IMG --> END([交付完成])
+    START([用户想法 / 活动资料]) --> IDEA[【AI】创意生成<br/>输出 brief.md]
+    IDEA --> IDEA_OK{创意确认}
+    IDEA_OK --> STORY[story_generation<br/>输出 story.md]
+    STORY --> STORY_OK{剧本确认}
+    STORY_OK --> ART[art_direction<br/>输出 style_bible.md]
+    ART --> ART_OK{风格确认}
+    ART_OK --> SB[storyboard_director<br/>输出 storyboard.json]
+    SB --> SB_REVIEW[storyboard_sequence_review]
+    SB_REVIEW --> ASSET[asset_executor<br/>asset_manifest.json<br/>shot_asset_map.json]
+    ASSET --> ASSET_PROMPT[asset_prompt_generation]
+    ASSET_PROMPT --> ASSET_IMAGE[asset_image_generation<br/>自动或外部手动]
+    ASSET_IMAGE --> ASSET_REVIEW[generated_asset_review]
+    ASSET_REVIEW --> SEGMENT[video_segment_planning<br/>输出 video_segment_plan.json]
+    SEGMENT --> SB_PROMPT[storyboard_prompt_generation<br/>读取 frame_role]
+    SB_PROMPT --> SB_IMAGE[storyboard_image_generation]
+    SB_IMAGE --> SB_VISUAL_REVIEW[storyboard_visual_review]
+    SB_VISUAL_REVIEW --> VIDEO_PROMPT[video_prompt_generation<br/>按 V### 循环]
+    VIDEO_PROMPT --> PACKAGE[final_package]
+    PACKAGE --> END([交付])
 ```
 
-**关键变更：**
-- 去掉 vertical 选择环节（一项目一垂类）
-- 去掉环节0（创意输入直接进创意生成）
-- 去掉默认 Skill（idea_generation / story_generation / art_direction 默认版全部删除）
-- 人物/场景/物品三路并行，互不依赖
-- 人物提示词改为 21:9 单图（面部特写+正/侧/后视图）
-- 物品资产只保留反复出现的关键物品
+### 不可颠倒的核心顺序
+
+```text
+generated_asset_review
+→ video_segment_planning
+→ storyboard_prompt_generation
+→ storyboard_image_generation
+→ storyboard_visual_review
+→ video_prompt_generation
+```
+
+原因：分镜提示词必须知道当前 `S###` 在视频段中的实际帧角色。`first_frame`、`last_frame` 和 `keyframe` 由 `video_segment_plan.json` 决定，分镜提示词生成器不得自行猜测。
 
 ---
 
-## 二、环节详解：输入 / 输出 / AI标注
+## 2. 正式状态机阶段
 
-### 阶段一：创意与剧本
+当前 `pipeline_runtime.py` 的阶段顺序是：
 
-#### 环节 1：【AI】创意生成
-- **类型**：AI 策略层
-- **Skill**：`advertising-idea-strategy`
-- **输入**：
-  - 用户想法（直接对话或文档）
-    - 中文解释：用户的一句话想法、一个产品介绍、或一场广告比赛活动说明
-  - 用户补充资料（产品资料、品牌资料、参考视频等，可选）
-- **输出**：`brief.md`（创意简报）
-  - 中文解释：结构化创意简报，包含核心创意、主角设定、核心冲突、情绪方向、目标受众、目标平台、画幅比例、目标时长、商业元素（产品/卖点/CTA/证据）、禁用元素、参考
-- **AI 提示词位置**：`.agents/skills/advertising-idea-strategy/SKILL.md`
-- **优化重点**：决定"拍什么"，不写具体剧本
-
----
-
-#### 环节 2：创意确认
-- **类型**：人工审核
-- **输入**：`brief.md`（创意简报）
-- **输出**：approved `brief.md`（已确认的创意简报）
-- **备注**：用户确认创意方向后才能进入剧本阶段
+| 顺序 | stage | 主要输出 | 是否需要人工批准 |
+|---:|---|---|---|
+| 1 | `story_generation` | `outputs/story.md` | 是 |
+| 2 | `art_direction` | `outputs/style_bible.md` | 是 |
+| 3 | `storyboard_director` | `outputs/storyboard.json` | 否 |
+| 4 | `storyboard_sequence_review` | `outputs/reviews/storyboard_sequence_review.json` | 是 |
+| 5 | `asset_executor` | `asset_manifest.json`、`shot_asset_map.json` | 否 |
+| 6 | `asset_prompt_generation` | 人物/场景/道具提示词 | 否 |
+| 7 | `asset_image_generation` | 资产图片及生成队列结果 | 否 |
+| 8 | `generated_asset_review` | 已批准资产与审核报告 | 是 |
+| 9 | `video_segment_planning` | `outputs/video_segment_plan.json` | 否 |
+| 10 | `storyboard_prompt_generation` | `outputs/approved/storyboard_prompts/S###.md` | 否 |
+| 11 | `storyboard_image_generation` | `outputs/storyboards/S###.png` | 否 |
+| 12 | `storyboard_visual_review` | `outputs/reviews/storyboard_visual_review.json` | 是 |
+| 13 | `video_prompt_generation` | `outputs/approved/video_generation/V###/` | 否 |
+| 14 | `final_package` | `outputs/final_package_manifest.json` | 否 |
 
 ---
 
-#### 环节 3：【AI】剧本生成
-- **类型**：AI 策略层
-- **Skill**：`advertising-content-strategy`
-- **输入**：
-  - approved `brief.md`（已确认创意简报）
-    - 中文解释：创意方向，包含核心创意、主角、冲突、商业元素
-- **输出**：`story.md`（剧本）
-  - 中文解释：完整剧本，包含故事内容、人物对白、场景描述、动作推进。广告类型还包含 `## 商业信息` 章节（产品、卖点、CTA、证据）
-- **AI 提示词位置**：`.agents/skills/advertising-content-strategy/SKILL.md`
-- **优化重点**：决定"怎么拍"，不写镜头和提示词
+## 3. 阶段详解
+
+### 3.1 创意前置步骤
+
+**Skill**：`advertising-idea-strategy`
+
+**输入**：用户想法、产品资料、品牌资料、活动规则、平台与时长要求。
+
+**输出**：`outputs/brief.md`
+
+创意简报决定“拍什么”，不写完整剧本、分镜、资产或生成提示词。当前该步骤尚未进入 `pipeline_runtime.py` 的受控 `STAGES`，因此必须在进入 `story_generation` 前人工确认。
+
+### 3.2 剧本生成
+
+**输入**：已确认的 `brief.md`
+
+**输出**：`story.md`
+
+广告项目的 `story.md` 必须包含 `## 商业信息`，记录品牌、产品、核心信息、CTA、证据和合规边界。剧本阶段不写镜头字段和资产清单。
+
+### 3.3 艺术方向
+
+**输入**：已确认的 `story.md`
+
+**输出**：`style_bible.md`
+
+只定义画面风格、整体色调、光线和 AI 视觉执行规则。具体构图、景别、机位和调度由分镜导演负责。
+
+### 3.4 分镜导演与顺序审核
+
+**输入**：`story.md`、`style_bible.md`
+
+**输出**：`storyboard.json`
+
+每个镜头包含：
+
+- `shot_id`
+- `scene_id`
+- `duration_seconds`
+- `framing`
+- `camera_move`
+- `action_desc`
+- 垂类扩展字段，如对白、旁白和配乐
+
+单个 `S###` 的时长上限与视频段上限不是同一个概念。当前质量门要求单镜头不超过 15 秒；视频段总时长由垂类的 `max_generated_clip_seconds` 控制。
+
+`storyboard_sequence_review` 在资产生产前检查：
+
+- 叙事顺序是否成立
+- Hook、产品、CTA 节奏是否完整
+- `scene_id` 是否合理
+- 单镜头时长与总时长是否有效
+- 动作是否足够具体、可被静态分镜和视频生成表达
+
+### 3.5 资产执行与资产审核
+
+`asset_executor` 输出：
+
+- `asset_manifest.json`
+- `shot_asset_map.json`
+
+人物、场景和关键道具提示词可以并行生产。只出现一次的普通道具通常不拆为独立资产。
+
+自动生图 Provider 是可选的；资产图片本身不是可选的。也就是说，可以自动生成，也可以外部手动生成后登记，但进入 `generated_asset_review` 和后续图片依赖阶段前，必须存在有效图片。
+
+### 3.6 视频段规划
+
+**Skill**：`video_segment_planner`
+
+**输入**：
+
+- `storyboard.json`
+- `shot_asset_map.json`
+- 垂类配置中的 `max_generated_clip_seconds`
+
+**输出**：`video_segment_plan.json`
+
+规划规则：
+
+1. 初始状态为一个镜头一个视频段。
+2. 只考虑下一个连续镜头。
+3. 只允许合并相同 `scene_id` 的镜头。
+4. 只有动作阶段、屏幕方向、站位关系或单一运镜真正连续时才合并。
+5. 合并总时长不得超过垂类配置。
+6. 场景切换、时间跳跃、主体或视点发生真实切换时必须拆分。
+7. 每个 storyboard shot 必须被且仅被一个视频段覆盖，并保持原顺序。
+
+示例：
+
+```json
+{
+  "video_id": "V001",
+  "source_shots": ["S001", "S002", "S003"],
+  "scene_id": "SC001",
+  "duration_seconds": 12,
+  "merge_strategy": "continuous_action",
+  "merge_reason": "同一场景内人物起身、走向门口并离开，动作和站位连续。",
+  "frame_plan": [
+    {"shot_id": "S001", "role": "first_frame"},
+    {"shot_id": "S002", "role": "keyframe"},
+    {"shot_id": "S003", "role": "last_frame"}
+  ]
+}
+```
+
+单镜头视频段只使用 `first_frame`。多镜头视频段的首尾分别是 `first_frame` 和 `last_frame`，中间确有控制价值的镜头是 `keyframe`。
+
+### 3.7 分镜提示词与分镜图
+
+**Skill**：`storyboard_prompt_generator`
+
+**输入**：
+
+- `storyboard.json`
+- `style_bible.md`
+- `shot_asset_map.json`
+- `video_segment_plan.json`
+- 已批准资产图片
+- 必要时的上一分镜图片
+
+每次只处理一个 `S###`。必须完成两项判断：
+
+1. 从 `video_segment_plan.json` 读取当前镜头的 `frame_role`。
+2. 判断是否引用上一分镜作为站位锚点。
+
+上一分镜只能用于人物相对位置、朝向、空间比例和场景连续性，不强制复制动作、表情、光线和景别。不得跨 `scene_id` 引用。
+
+正式图片按镜头保存：
+
+```text
+outputs/storyboards/S001.png
+outputs/storyboards/S002.png
+outputs/storyboards/S003.png
+```
+
+### 3.8 “分镜板”的正式含义
+
+一个视频段的分镜板由该段 source shots 对应的逐镜图片共同组成：
+
+```text
+V001
+├── S001.png  first_frame
+├── S002.png  keyframe
+└── S003.png  last_frame
+```
+
+为了人工审核，可以额外生成：
+
+```text
+outputs/review_boards/V001_storyboard_board.png
+```
+
+该联系表只是展示件。正式数据源仍然是：
+
+- `video_segment_plan.json`
+- 每个 `S###` 的分镜提示词
+- 每个 `S###` 的独立分镜图片
+
+### 3.9 分镜视觉审核
+
+在视频提示词生产前检查：
+
+- 人物是否变脸、变体是否错误
+- 场景空间、轴线和主要道具是否跳位
+- 小型连续动作是否能从首帧自然推进到尾帧
+- 产品包装、Logo 和品牌色是否准确
+- 帧角色是否与 `video_segment_plan.json` 一致
+- 上一分镜锚点是否只用于站位连续性
+
+存在未解决 P0 时不得进入视频提示词阶段。
+
+### 3.10 视频提示词
+
+**Skill**：`video_prompt_generator`
+
+按 `V###` 循环生成，每次只处理一个已规划的视频段。该阶段不得重新合并、拆分或修改帧角色。
+
+主要输入：
+
+- `video_segment_plan.json`
+- `storyboard.json`
+- `shot_asset_map.json`
+- source shots 对应的分镜提示词
+- source shots 对应的分镜图片
+- 已批准资产参考图
+
+每个视频段只使用一种主运镜。提示词重点描述从首帧到尾帧的画面演进，不重复已经被参考图锁定的静态构图与人物外形。
 
 ---
 
-#### 环节 4：剧本确认
-- **类型**：人工审核
-- **输入**：`story.md`（剧本）
-- **输出**：approved `story.md`（已确认的剧本）
-
----
-
-### 阶段二：视觉与分镜
-
-#### 环节 5：【AI】艺术方向
-- **类型**：AI 策略层
-- **Skill**：`advertising-art-direction`
-- **输入**：
-  - approved `story.md`（已确认剧本）
-    - 中文解释：完整剧本
-- **输出**：`style_bible.md`（风格圣经）
-  - 中文解释：视觉风格指南，定义全片色调、材质、光线、构图方向、角色视觉风格、场景视觉风格
-- **AI 提示词位置**：`.agents/skills/advertising-art-direction/SKILL.md`
-- **优化重点**：统一全片视觉方向
-
----
-
-#### 环节 6：风格确认
-- **类型**：人工审核
-- **输入**：`style_bible.md`（风格圣经）
-- **输出**：approved `style_bible.md`（已确认风格圣经）
-
----
-
-#### 环节 7：【AI】分镜导演
-- **类型**：AI 策略层
-- **Skill**：`advertising-storyboard-strategy`
-- **输入**：
-  - approved `story.md`（已确认剧本）
-  - approved `style_bible.md`（已确认风格圣经）
-- **输出**：`storyboard.json`（分镜表）
-  - 中文解释：结构化分镜表，每个分镜包含：
-    - `shot_id`（分镜编号）
-    - `scene_id`（场景编号）
-    - `duration_seconds`（时长秒数，单镜头≤15秒）
-    - `framing`（景别）
-    - `camera_move`（运镜方式）
-    - `action_desc`（动作描述）
-    - `dialogue`（台词）— 人物对白
-    - `voiceover`（配音）— 旁白/画外音
-    - `music`（配乐）— 背景音乐描述
-- **AI 提示词位置**：`.agents/skills/advertising-storyboard-strategy/SKILL.md`、`skills/raw_prompts/storyboard_director.source.md`
-- **优化重点**：每个镜头怎么拍，含动作+台词+配音+配乐
-
----
-
-#### 环节 8：分镜审核
-- **类型**：质量门检查
-- **输入**：`storyboard.json`（分镜表）
-- **输出**：通过 / 退回修改
-
----
-
-### 阶段三：资产固定
-
-#### 环节 9：【AI】资产执行官
-- **类型**：AI 基础设施层（共用）
-- **Skill**：`asset_executor`
-- **输入**：
-  - `story.md`（剧本）
-  - `storyboard.json`（分镜表）
-- **输出**：
-  - `asset_manifest.json`（资产清单）
-    - 中文解释：所有需要生成的资产列表，包含人物资产、场景资产、物品资产
-    - **物品资产只包含反复出现的关键物品**：必须在 2 个及以上分镜出现，且对剧情有推进作用。只出现一次的道具不作为独立资产，在分镜提示词中用文字描述即可
-    - 物品资产额外标记 `is_key_item: true`（全部为 true，因为只保留反复出现的）、`recurrence_count`（出现次数）、`appearances`（出现分镜列表）
-  - `shot_asset_map.json`（分镜资产映射）
-    - 中文解释：每个分镜用到了哪些资产，映射关系表
-- **AI 提示词位置**：`skills/asset_executor.md`
-- **优化重点**：固定资产最小单位，物品只保留反复出现的
-
----
-
-### 阶段四：三类提示词生产（并行，互不依赖）
-
-#### 环节 10：【AI】人物提示词
-- **类型**：AI 基础设施层（共用）
-- **Skill**：`character_prompt_generator`
-- **输入**：
-  - `style_bible.md`（风格圣经）— 视觉方向
-  - `asset_name`（资产名，如"林小满_雨夜居家装"）
-- **输出**：`outputs/assets/characters/prompts/{asset_name}.md`（人物提示词文件）
-  - 中文解释：21:9 宽幅单图参考提示词，横向排列展示：
-    - 面部特写
-    - 正视图
-    - 侧视图
-    - 后视图
-  - 四视图保持同一身份、年龄、发型、体型和服装
-- **AI 提示词位置**：`skills/raw_prompts/character_prompt_generator.source.md`
-- **优化重点**：人物外观一致性锁定，21:9 四视图
-
----
-
-#### 环节 11：【AI】场景提示词
-- **类型**：AI 基础设施层（共用）
-- **Skill**：`scene_prompt_generator`
-- **输入**：
-  - `style_bible.md`（风格圣经）— 视觉方向
-  - `asset_name`（资产名，如"雨夜客厅场景"）
-- **输出**：`outputs/assets/scenes/prompts/{asset_name}.md`（场景提示词文件）
-  - 中文解释：单场景参考图提示词，用于生成场景空间参考图
-- **AI 提示词位置**：`skills/raw_prompts/scene_prompt_generator.source.md`
-- **优化重点**：场景空间一致性
-
----
-
-#### 环节 12：【AI】物品提示词
-- **类型**：AI 基础设施层（共用）
-- **Skill**：`prop_prompt_generator`
-- **输入**：
-  - `style_bible.md`（风格圣经）— 视觉方向
-  - `asset_name`（资产名，如"信件"）
-- **输出**：`outputs/assets/props/prompts/{asset_name}.md`（物品提示词文件）
-  - 中文解释：单物体参考图提示词。所有进入此环节的物品都是反复出现的关键物品，必须强调外观一致性锁定，说明固定特征（形状、材质、颜色、尺寸、特殊标记、磨损位置等）
-- **AI 提示词位置**：`skills/raw_prompts/prop_prompt_generator.source.md`
-- **优化重点**：关键物品一致性锁定，最小输入
-
----
-
-### 阶段五：分镜提示词
-
-#### 环节 13：【AI】分镜提示词
-- **类型**：AI 策略层
-- **Skill**：`advertising-prompt-strategy`
-- **输入**：
-  - `storyboard.json`（分镜表）— 分镜信息（含台词/配音/配乐）
-  - `style_bible.md`（风格圣经）— 视觉方向
-  - `shot_asset_map.json`（分镜资产映射）— 本分镜用到哪些人物/场景/物品
-- **输出**：`outputs/storyboard_prompts/{shot_id}.md`（分镜提示词文件）
-  - 中文解释：每个分镜的参考图提示词。包含：
-    - 帧角色（首帧/尾帧/关键帧）
-    - 上一分镜站位参考判断
-    - 显式资产引用区（列出引用的人物/场景/物品+出现次数）
-    - 中文分镜图提示词
-- **AI 提示词位置**：`.agents/skills/advertising-prompt-strategy/SKILL.md`、`skills/raw_prompts/storyboard_prompt_generator.source.md`
-- **优化重点**：分镜引用人物+场景+物品
-
----
-
-### 阶段六：视频提示词
-
-#### 环节 14：【AI】视频段规划
-- **类型**：AI 基础设施层（共用）
-- **Skill**：`video_segment_planner`
-- **输入**：
-  - `storyboard.json`（分镜表）
-  - `shot_asset_map.json`（分镜资产映射）
-  - `max_generated_clip_seconds`（镜头组上限秒数，从 vertical 配置注入，广告=30秒）
-- **输出**：`video_segment_plan.json`（视频段规划）
-  - 中文解释：将连续分镜合并为视频段（V###），每个视频段包含 source_shots（源分镜列表）、duration_seconds（总时长，≤30秒）、merge_decision（合并决策）
-- **AI 提示词位置**：`skills/video_segment_planner.md`
-- **优化重点**：合并规则（同场景、动作连续、≤30秒）
-
----
-
-#### 环节 15：【AI】视频提示词
-- **类型**：AI 基础设施层（共用）
-- **Skill**：`video_prompt_generator`
-- **输入**：
-  - `storyboard.json`（分镜表）
-  - `video_segment_plan.json`（视频段规划）
-  - `outputs/storyboard_prompts/*.md`（分镜提示词）
-  - `max_generated_clip_seconds`（镜头组上限，广告=30秒）
-- **输出**：
-  - `video_prompts.md`（视频提示词文档）
-    - 中文解释：每个视频段（V###）的最终生成提示词，包含资产声明区、frame_references（帧引用）、merge_decision（合并决策）、中文视频提示词正文
-  - `video_prompts.json`（视频提示词结构化数据）
-    - 中文解释：机器可读的视频提示词，供下游视频生成工具使用
-- **AI 提示词位置**：`skills/raw_prompts/seedance_video_prompt.source.md`、`skills/video_prompt_generator.md`
-- **优化重点**：引用分镜+人物，锁补匹配、运镜纯度
-
----
-
-### 阶段七：质量检查与交付
-
-#### 环节 16：【AI】质量门
-- **类型**：AI 策略层
-- **Skill**：`advertising-quality-gate`
-- **输入**：
-  - `story.md`（剧本）
-  - `style_bible.md`（风格圣经）
-  - `storyboard.json`（分镜表）
-  - 所有提示词产出
-- **输出**：`vertical_review.json`（质量检查报告）
-  - 中文解释：按广告标准检查质量，检查广告合规、CTA、证据
-- **AI 提示词位置**：`.agents/skills/advertising-quality-gate/SKILL.md`
-
----
-
-#### 环节 17：生图执行（可选）
-- **类型**：可选执行，支持手动或自动
-- **输入**：各类提示词（人物/场景/物品/分镜）
-- **输出**：图片文件（.png）
-- **备注**：可跳过，提示词产出后即可交付。支持手动上传图片后用 `register_image_result.py` 回填
-
----
-
-## 三、AI 环节汇总（提示词优化清单）
-
-| # | AI 环节 | 策略层/基础设施层 | 提示词文件位置 | 优化重点 |
-|---|---|---|---|---|
-| 1 | 创意生成 | 策略层 | `.agents/skills/advertising-idea-strategy/SKILL.md` | 决定"拍什么" |
-| 2 | 剧本生成 | 策略层 | `.agents/skills/advertising-content-strategy/SKILL.md` | 决定"怎么拍" |
-| 3 | 艺术方向 | 策略层 | `.agents/skills/advertising-art-direction/SKILL.md` | 统一视觉方向 |
-| 4 | 分镜导演 | 策略层 | `.agents/skills/advertising-storyboard-strategy/SKILL.md` | 每个镜头怎么拍（含台词/配音/配乐） |
-| 5 | 资产执行官 | 基础设施层 | `skills/asset_executor.md` | 固定资产最小单位，物品只保留反复出现的 |
-| 6 | 人物提示词 | 基础设施层 | `skills/raw_prompts/character_prompt_generator.source.md` | 21:9 四视图（面部特写+正/侧/后视图） |
-| 7 | 场景提示词 | 基础设施层 | `skills/raw_prompts/scene_prompt_generator.source.md` | 场景空间一致性 |
-| 8 | 物品提示词 | 基础设施层 | `skills/raw_prompts/prop_prompt_generator.source.md` | 关键物品一致性锁定，最小输入 |
-| 9 | 分镜提示词 | 策略层 | `.agents/skills/advertising-prompt-strategy/SKILL.md` | 引用人物+场景+物品 |
-| 10 | 视频段规划 | 基础设施层 | `skills/video_segment_planner.md` | 合并规则（≤30秒） |
-| 11 | 视频提示词 | 基础设施层 | `skills/raw_prompts/seedance_video_prompt.source.md` | 引用分镜+人物 |
-| 12 | 质量门 | 策略层 | `.agents/skills/advertising-quality-gate/SKILL.md` | 广告质量标准 |
-
----
-
-## 四、五类提示词引用关系
+## 4. 产物依赖关系
 
 ```mermaid
-flowchart TD
-    subgraph 独立生成 可并行 互不依赖
-        P1[人物提示词<br/>输入: style + asset_name<br/>输出: 21:9 四视图]
-        P2[场景提示词<br/>输入: style + asset_name<br/>输出: 单场景参考图]
-        P3[物品提示词<br/>输入: style + asset_name<br/>输出: 单物体参考图]
-    end
-    P1 --> P4[分镜提示词<br/>输入: storyboard + style + shot_asset_map<br/>输出: 单分镜参考图]
-    P2 --> P4
-    P3 --> P4
-    P4 --> P5[视频提示词<br/>输入: storyboard + 分镜提示词 + 视频段规划<br/>输出: 视频生成提示词]
+flowchart LR
+    STORY[story.md] --> STYLE[style_bible.md]
+    STORY --> SB[storyboard.json]
+    STYLE --> SB
+    SB --> ASSETS[asset_manifest.json + shot_asset_map.json]
+    ASSETS --> ASSET_IMAGES[approved asset images]
+    SB --> SEGMENT[video_segment_plan.json]
+    ASSETS --> SEGMENT
+    SEGMENT --> SB_PROMPTS[S### storyboard prompts]
+    ASSET_IMAGES --> SB_PROMPTS
+    SB_PROMPTS --> SB_IMAGES[S### storyboard images]
+    SB_IMAGES --> VISUAL_REVIEW[storyboard visual review]
+    SEGMENT --> VIDEO[V### video prompts]
+    VISUAL_REVIEW --> VIDEO
+    VIDEO --> PACKAGE[final package]
 ```
-
-| 提示词类型 | 输入 | 输出 | 引用关系 |
-|---|---|---|---|
-| 人物提示词 | `style_bible.md` + `asset_name` | 21:9 四视图（面部特写+正/侧/后视图） | 独立 |
-| 场景提示词 | `style_bible.md` + `asset_name` | 单场景参考图提示词 | 独立 |
-| 物品提示词 | `style_bible.md` + `asset_name` | 单物体参考图提示词 | 独立 |
-| 分镜提示词 | `storyboard.json` + `style_bible.md` + `shot_asset_map.json` | 单分镜参考图提示词 | 引用人物+场景+物品 |
-| 视频提示词 | `storyboard.json` + `video_segment_plan.json` + 分镜提示词 | 视频生成提示词 | 引用分镜+人物 |
 
 ---
 
-## 五、与上一版的关键变更
+## 5. 图片执行的“可选”边界
 
-| # | 变更项 | 上一版 | 本版 |
-|---|---|---|---|
-| 1 | vertical 选择 | 有选择环节 | 去掉，一项目一垂类 |
-| 2 | 环节0 创意输入 | 单独环节填写 idea_brief.md | 去掉，直接进创意生成 |
-| 3 | 默认 Skill | 有 idea_generation/story_generation/art_direction 默认版 | 全部删除，只保留广告策略 |
-| 4 | 分镜导演字段 | 只有 action_desc | 增加 dialogue（台词）、voiceover（配音）、music（配乐） |
-| 5 | 物品资产定义 | in_场景内反复出现的 | 只保留反复出现的（≥2次），一次性道具不作为独立资产 |
-| 6 | 人物提示词格式 | 2x2 四宫格 | 21:9 宽幅单图（面部特写+正/侧/后视图） |
-| 7 | 物品提示词输入 | story + style + asset_name + is_key_item + recurrence_count + appearances | 精简为 style + asset_name |
-| 8 | 三类提示词关系 | 人物提示词与其他有关联 | 完全并行，互不依赖 |
+“生图可选”只表示自动执行方式可选：
+
+- 可以使用仓库图片队列和 Provider。
+- 可以在外部工具手动生成，再通过登记脚本回填。
+- 可以复用用户提供且通过审核的正式参考图。
+
+它不表示可以在需要视觉控制的生产链中完全没有图片。如果选择继续执行 `storyboard_prompt_generation`、`storyboard_image_generation`、`storyboard_visual_review` 和正式视频提示词生产，则必须满足相应图片和审核门禁。
+
+---
+
+## 6. 时长规则
+
+- 单个 storyboard shot：当前质量门上限为 15 秒。
+- 单个生成视频段：读取垂类配置的 `production.max_generated_clip_seconds`。
+- 广告垂类当前配置值为 30 秒。
+- Schema、验证器和文档必须与垂类配置保持一致；不得在多个位置分别维护相互冲突的硬编码上限。
+
+---
+
+## 7. 常用命令
+
+```bash
+python scripts/run_pipeline.py RUN_DIR status
+python scripts/run_pipeline.py RUN_DIR start --stage video_segment_planning
+python scripts/run_pipeline.py RUN_DIR complete --stage video_segment_planning
+python scripts/validate_project.py RUN_DIR --phase video_segment_plan
+python scripts/run_pipeline.py RUN_DIR start --stage storyboard_prompt_generation
+python scripts/validate_project.py RUN_DIR --level production
+```
+
+---
+
+## 8. 防止再次漂移的检查清单
+
+修改流程、阶段顺序或输入契约时，应同步检查：
+
+- [ ] `scripts/pipeline_runtime.py`
+- [ ] `checkpoint.template.json`
+- [ ] `scripts/stage_gate.py`
+- [ ] `scripts/validate_project.py`
+- [ ] 对应 Skill 的 Inputs / Outputs / Quality Gate
+- [ ] `README.md`
+- [ ] `PIPELINE_FLOW.md`
+- [ ] 相关 Schema 和垂类配置
+
+特别检查：
+
+- [ ] `video_segment_planning` 是否位于 `storyboard_prompt_generation` 之前
+- [ ] 分镜提示词是否强制读取 `video_segment_plan.json`
+- [ ] 视频段帧角色是否唯一且覆盖所有 source shots
+- [ ] 自动生图可选与正式图片产物必需是否被正确区分
+- [ ] 时长上限是否来自统一配置，而不是互相冲突的硬编码
