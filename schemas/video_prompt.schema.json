@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Video Prompt Plan",
+  "$comment": "The upper duration limit is enforced by scripts/validate_project.py from production.max_generated_clip_seconds in the active vertical config. Do not hard-code a second limit here.",
   "type": "object",
   "required": ["videos"],
   "properties": {
@@ -22,26 +23,26 @@
           "prompt_cn"
         ],
         "properties": {
-          "video_id": { "type": "string", "pattern": "^V[0-9]{3}$" },
-          "task_type": { "type": "string", "enum": ["pipeline_shot_generation"] },
+          "video_id": {"type": "string", "pattern": "^V[0-9]{3}$"},
+          "task_type": {"type": "string", "enum": ["pipeline_shot_generation"]},
           "source_shots": {
             "type": "array",
-            "items": { "type": "string", "pattern": "^S[0-9]{3}$" }
+            "items": {"type": "string", "pattern": "^S[0-9]{3}$"}
           },
-          "duration_seconds": { "type": ["integer", "number"], "minimum": 0, "maximum": 15 },
-          "scene_id": { "type": "string", "pattern": "^SC[0-9]{3}$" },
-          "merge_decision": { "$ref": "#/$defs/merge_decision" },
+          "duration_seconds": {"type": ["integer", "number"], "minimum": 0},
+          "scene_id": {"type": "string", "pattern": "^SC[0-9]{3}$"},
+          "merge_decision": {"$ref": "#/$defs/merge_decision"},
           "frame_references": {
             "type": "array",
-            "items": { "$ref": "#/$defs/frame_reference" }
+            "items": {"$ref": "#/$defs/frame_reference"}
           },
           "declared_assets": {
             "type": "array",
-            "items": { "$ref": "#/$defs/declared_asset" }
+            "items": {"$ref": "#/$defs/declared_asset"}
           },
-          "uses_previous_storyboard_anchor": { "type": "boolean" },
-          "risk_notice_required": { "type": "boolean" },
-          "prompt_cn": { "type": "string" }
+          "uses_previous_storyboard_anchor": {"type": "boolean"},
+          "risk_notice_required": {"type": "boolean"},
+          "prompt_cn": {"type": "string"}
         }
       }
     }
@@ -62,30 +63,30 @@
             "forced_split_action_discontinuity"
           ]
         },
-        "reason": { "type": "string" },
-        "continuity_risk": { "type": "string", "enum": ["low", "medium", "high"] }
+        "reason": {"type": "string"},
+        "continuity_risk": {"type": "string", "enum": ["low", "medium", "high"]}
       }
     },
     "frame_reference": {
       "type": "object",
       "required": ["shot_id", "asset_name", "role", "path"],
       "properties": {
-        "shot_id": { "type": "string", "pattern": "^S[0-9]{3}$" },
-        "asset_name": { "type": "string" },
-        "role": { "type": "string", "enum": ["first_frame", "last_frame", "keyframe"] },
-        "path": { "type": "string" }
+        "shot_id": {"type": "string", "pattern": "^S[0-9]{3}$"},
+        "asset_name": {"type": "string"},
+        "role": {"type": "string", "enum": ["first_frame", "last_frame", "keyframe"]},
+        "path": {"type": "string"}
       }
     },
     "declared_asset": {
       "type": "object",
       "required": ["asset_name", "media_type", "role", "usage_type"],
       "properties": {
-        "asset_name": { "type": "string" },
-        "media_type": { "type": "string", "enum": ["storyboard", "character", "scene", "prop", "image"] },
-        "role": { "type": "string", "enum": ["first_frame", "last_frame", "keyframe", "character_asset", "scene_asset", "style_reference"] },
-        "usage_type": { "type": "string", "enum": ["reference", "text_only"] },
-        "source_path": { "type": ["string", "null"] },
-        "notes": { "type": ["string", "null"] }
+        "asset_name": {"type": "string"},
+        "media_type": {"type": "string", "enum": ["storyboard", "character", "scene", "prop", "image"]},
+        "role": {"type": "string", "enum": ["first_frame", "last_frame", "keyframe", "character_asset", "scene_asset", "style_reference"]},
+        "usage_type": {"type": "string", "enum": ["reference", "text_only"]},
+        "source_path": {"type": ["string", "null"]},
+        "notes": {"type": ["string", "null"]}
       }
     }
   }
