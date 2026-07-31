@@ -9,11 +9,12 @@ import math
 import re
 from pathlib import Path
 from typing import Any
+
 from pipeline_runtime import STAGES
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_DIR = REPO_ROOT / "schemas"
-MAX_DURATION = 15
+MAX_SHOT_DURATION = 15
 FRAME_ROLES = {"first_frame", "last_frame", "keyframe"}
 PIPELINE = STAGES
 PHASE_ALIASES = {
@@ -33,6 +34,34 @@ FORBIDDEN_STORYBOARD_FIELDS = {
     "prompt_cn",
 }
 VIDEO_SECTIONS = ["【自检通过项】", "【资产声明区】", "【中文视频提示词】"]
+
+
+def read_configured_max_generated_clip_seconds() -> float:
+    """Read the single advertising vertical's generated-clip limit.
+
+    The repository currently uses one vertical per project and ships only the
+    advertising production package. Keeping the value in the vertical config
+    prevents the validator and JSON schemas from drifting to a second hard-coded
+    duration limit.
+    """
+
+    config_path = REPO_ROOT / "config" / "verticals" / "advertising.yaml"
+    text = config_path.read_text(encoding="utf-8")
+    match = re.search(
+        r"(?m)^\s*max_generated_clip_seconds:\s*([0-9]+(?:\.[0-9]+)?)\s*$",
+        text,
+    )
+    if not match:
+        raise RuntimeError(
+            f"missing production.max_generated_clip_seconds in {config_path}"
+        )
+    value = float(match.group(1))
+    if value <= 0:
+        raise RuntimeError("max_generated_clip_seconds must be greater than zero")
+    return value
+
+
+MAX_GENERATED_CLIP_SECONDS = read_configured_max_generated_clip_seconds()
 
 
 def fail(message: str) -> None:
@@ -146,7 +175,13 @@ def validate_initialized(run_dir: Path) -> None:
     checkpoint = read_json(run_dir / "checkpoint.json")
     if checkpoint.get("phase_order") != PIPELINE:
         fail("checkpoint.phase_order does not match pipeline")
-    for rel in ["inputs", "outputs/assets/characters", "outputs/assets/scenes", "outputs/assets/props", "outputs/storyboards"]:
+    for rel in [
+        "inputs",
+        "outputs/assets/characters",
+        "outputs/assets/scenes",
+        "outputs/assets/props",
+        "outputs/storyboards",
+    ]:
         require_dir(run_dir / rel)
     require_file(run_dir / "inputs/idea_brief.md")
     ok("initialized")
@@ -172,7 +207,9 @@ def validate_art(run_dir: Path) -> None:
 
 
 def validate_storyboard(run_dir: Path) -> dict[str, Any]:
-    storyboard = validate_schema_file(outputs(run_dir) / "storyboard.json", "storyboard.schema.json")
+    storyboard = validate_schema_file(
+        outputs(run_dir) / "storyboard.json", "storyboard.schema.json"
+    )
     shots = storyboard.get("shots", [])
     if not shots:
         fail("storyboard.json has no shots")
@@ -183,8 +220,15 @@ def validate_storyboard(run_dir: Path) -> dict[str, Any]:
         if not re.fullmatch(r"SC[0-9]{3}", str(shot.get("scene_id"))):
             fail(f"{expected} scene_id must match SC###")
         duration = shot.get("duration_seconds")
-        if not isinstance(duration, (int, float)) or isinstance(duration, bool) or duration <= 0 or duration > MAX_DURATION:
-            fail(f"{expected} duration_seconds must be >0 and <= {MAX_DURATION}")
+        if (
+            not isinstance(duration, (int, float))
+            or isinstance(duration, bool)
+            or duration <= 0
+            or duration > MAX_SHOT_DURATION
+        ):
+            fail(
+                f"{expected} duration_seconds must be >0 and <= {MAX_SHOT_DURATION}"
+            )
         forbidden = sorted(FORBIDDEN_STORYBOARD_FIELDS.intersection(shot.keys()))
         if forbidden:
             fail(f"{expected} contains later-stage fields: {', '.join(forbidden)}")
@@ -194,16 +238,26 @@ def validate_storyboard(run_dir: Path) -> dict[str, Any]:
 
 def validate_assets(run_dir: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     storyboard = validate_storyboard(run_dir)
-    manifest = validate_schema_file(outputs(run_dir) / "asset_manifest.json", "asset_manifest.schema.json")
-    shot_map = validate_schema_file(outputs(run_dir) / "shot_asset_map.json", "shot_asset_map.schema.json")
-    names = {item["asset_name"] for group in ("characters", "scenes", "props") for item in manifest.get(group, [])}
+    manifest = validate_schema_file(
+        outputs(run_dir) / "asset_manifest.json", "asset_manifest.schema.json"
+    )
+    shot_map = validate_schema_file(
+        outputs(run_dir) / "shot_asset_map.json", "shot_asset_map.schema.json"
+    )
+    names = {
+        item["asset_name"]
+        for group in ("characters", "scenes", "props")
+        for item in manifest.get(group, [])
+    }
     if any(re.match(r"^(CHAR|ENV|PROP|AUDIO)_[0-9]{3}$", name) for name in names):
         fail("asset names must not use abstract IDs")
     for group in ("characters", "scenes", "props"):
         for item in manifest.get(group, []) or []:
             if "prompt_outputs" in item:
                 fail("use output_prompt_path, not prompt_outputs")
-            if item.get("generation_required") is True and not item.get("output_prompt_path"):
+            if item.get("generation_required") is True and not item.get(
+                "output_prompt_path"
+            ):
                 fail(f"{item.get('asset_name')} missing output_prompt_path")
     valid_shots = {shot["shot_id"] for shot in storyboard["shots"]}
     mapped_shots = [row.get("shot_id") for row in shot_map.get("shot_assets", [])]
@@ -215,7 +269,9 @@ def validate_assets(run_dir: Path) -> tuple[dict[str, Any], dict[str, Any]]:
         for group in ("characters", "scenes", "props"):
             missing = sorted(set(row.get(group, []) or []) - names)
             if missing:
-                fail(f"{row.get('shot_id')} references unknown {group}: {', '.join(missing)}")
+                fail(
+                    f"{row.get('shot_id')} references unknown {group}: {', '.join(missing)}"
+                )
     ok("assets")
     return manifest, shot_map
 
@@ -245,7 +301,9 @@ def validate_image_queue(run_dir: Path) -> None:
 def shot_sections(text: str) -> dict[str, str]:
     matches = list(re.finditer(r"(?m)^##\s+(S[0-9]{3})\b", text))
     return {
-        match.group(1): text[match.start() : matches[i + 1].start() if i + 1 < len(matches) else len(text)]
+        match.group(1): text[
+            match.start() : matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        ]
         for i, match in enumerate(matches)
     }
 
@@ -258,7 +316,9 @@ def field(section: str, name: str) -> str | None:
 def validate_storyboard_prompt_generation(run_dir: Path) -> None:
     storyboard = validate_storyboard(run_dir)
     require_file(outputs(run_dir) / "storyboard_prompts.md")
-    sections = shot_sections((outputs(run_dir) / "storyboard_prompts.md").read_text(encoding="utf-8"))
+    sections = shot_sections(
+        (outputs(run_dir) / "storyboard_prompts.md").read_text(encoding="utf-8")
+    )
     shots = storyboard["shots"]
     by_id = {shot["shot_id"]: shot for shot in shots}
     for i, shot in enumerate(shots):
@@ -266,7 +326,9 @@ def validate_storyboard_prompt_generation(run_dir: Path) -> None:
         section = sections.get(shot_id)
         if not section:
             fail(f"storyboard_prompts.md missing {shot_id}")
-        role = field(section, "frame_role") or field(section, "recommended_frame_role")
+        role = field(section, "frame_role") or field(
+            section, "recommended_frame_role"
+        )
         if role not in FRAME_ROLES:
             fail(f"{shot_id} missing valid frame_role")
         uses_previous = field(section, "uses_previous_storyboard_reference")
@@ -286,15 +348,23 @@ def validate_storyboard_prompt_generation(run_dir: Path) -> None:
 
 
 def validate_storyboard_sequence_review(run_dir: Path) -> None:
-    review = validate_schema_file(outputs(run_dir) / "reviews/storyboard_sequence_review.json", "storyboard_sequence_review.schema.json")
-    if review.get("status") != "pass" or any(x.get("severity") == "P0" for x in review.get("issues", [])):
+    review = validate_schema_file(
+        outputs(run_dir) / "reviews/storyboard_sequence_review.json",
+        "storyboard_sequence_review.schema.json",
+    )
+    if review.get("status") != "pass" or any(
+        x.get("severity") == "P0" for x in review.get("issues", [])
+    ):
         fail("storyboard sequence review has unresolved blockers")
     ok("storyboard sequence review")
 
 
 def validate_video_segment_plan(run_dir: Path) -> None:
     storyboard = validate_storyboard(run_dir)
-    plan = validate_schema_file(outputs(run_dir) / "video_segment_plan.json", "video_segment_plan.schema.json")
+    plan = validate_schema_file(
+        outputs(run_dir) / "video_segment_plan.json",
+        "video_segment_plan.schema.json",
+    )
     shot_index = {x["shot_id"]: i for i, x in enumerate(storyboard["shots"])}
     covered = []
     for i, segment in enumerate(plan["segments"], 1):
@@ -307,15 +377,25 @@ def validate_video_segment_plan(run_dir: Path) -> None:
         rows = [storyboard["shots"][x] for x in indexes]
         if {x["scene_id"] for x in rows} != {segment["scene_id"]}:
             fail(f"{segment['video_id']} crosses scene boundary")
-        if not math.isclose(sum(x["duration_seconds"] for x in rows), segment["duration_seconds"]):
+        duration_sum = sum(x["duration_seconds"] for x in rows)
+        if not math.isclose(duration_sum, segment["duration_seconds"]):
             fail(f"{segment['video_id']} duration mismatch")
+        if duration_sum > MAX_GENERATED_CLIP_SECONDS:
+            fail(
+                f"{segment['video_id']} duration exceeds configured "
+                f"max_generated_clip_seconds ({MAX_GENERATED_CLIP_SECONDS:g}s)"
+            )
         roles = [x["role"] for x in segment["frame_plan"]]
         frame_shots = [x["shot_id"] for x in segment["frame_plan"]]
         if frame_shots != source:
             fail(f"{segment['video_id']} frame plan must cover source shots in order")
         if len(source) == 1 and roles != ["first_frame"]:
             fail(f"{segment['video_id']} single shot must be first_frame")
-        if len(source) > 1 and (roles[0] != "first_frame" or roles[-1] != "last_frame" or any(x != "keyframe" for x in roles[1:-1])):
+        if len(source) > 1 and (
+            roles[0] != "first_frame"
+            or roles[-1] != "last_frame"
+            or any(x != "keyframe" for x in roles[1:-1])
+        ):
             fail(f"{segment['video_id']} has invalid endpoint or keyframe roles")
         covered.extend(source)
     if covered != [x["shot_id"] for x in storyboard["shots"]]:
@@ -324,14 +404,21 @@ def validate_video_segment_plan(run_dir: Path) -> None:
 
 
 def validate_storyboard_visual_review(run_dir: Path) -> None:
-    review = validate_schema_file(outputs(run_dir) / "reviews/storyboard_visual_review.json", "storyboard_visual_review.schema.json")
-    if review.get("status") != "pass" or any(x.get("severity") == "P0" for x in review.get("issues", [])):
+    review = validate_schema_file(
+        outputs(run_dir) / "reviews/storyboard_visual_review.json",
+        "storyboard_visual_review.schema.json",
+    )
+    if review.get("status") != "pass" or any(
+        x.get("severity") == "P0" for x in review.get("issues", [])
+    ):
         fail("storyboard visual review has unresolved blockers")
     ok("storyboard visual review")
 
 
 def validate_video_prompt_plan(run_dir: Path, storyboard: dict[str, Any]) -> None:
-    plan = validate_schema_file(outputs(run_dir) / "video_prompts.json", "video_prompt.schema.json")
+    plan = validate_schema_file(
+        outputs(run_dir) / "video_prompts.json", "video_prompt.schema.json"
+    )
     shots = storyboard["shots"]
     shot_by_id = {shot["shot_id"]: shot for shot in shots}
     shot_index = {shot["shot_id"]: i for i, shot in enumerate(shots)}
@@ -352,27 +439,43 @@ def validate_video_prompt_plan(run_dir: Path, storyboard: dict[str, Any]) -> Non
             fail(f"{video_id} source_shots contains duplicates")
         unknown = [sid for sid in source_shots if sid not in shot_index]
         if unknown:
-            fail(f"{video_id} source_shots references unknown shots: {', '.join(unknown)}")
+            fail(
+                f"{video_id} source_shots references unknown shots: {', '.join(unknown)}"
+            )
         indexes = [shot_index[sid] for sid in source_shots]
         if indexes != list(range(min(indexes), max(indexes) + 1)):
             fail(f"{video_id} source_shots must be contiguous and ordered")
         scenes = {shot_by_id[sid]["scene_id"] for sid in source_shots}
         if scenes != {video.get("scene_id")}:
             fail(f"{video_id} scene_id must match all source_shots")
-        duration_sum = sum(shot_by_id[sid]["duration_seconds"] for sid in source_shots)
-        if duration_sum > MAX_DURATION:
-            fail(f"{video_id} merged duration exceeds {MAX_DURATION}s")
+        duration_sum = sum(
+            shot_by_id[sid]["duration_seconds"] for sid in source_shots
+        )
+        if duration_sum > MAX_GENERATED_CLIP_SECONDS:
+            fail(
+                f"{video_id} merged duration exceeds configured "
+                f"max_generated_clip_seconds ({MAX_GENERATED_CLIP_SECONDS:g}s)"
+            )
         declared_duration = video.get("duration_seconds")
-        if not isinstance(declared_duration, (int, float)) or isinstance(declared_duration, bool):
+        if not isinstance(declared_duration, (int, float)) or isinstance(
+            declared_duration, bool
+        ):
             fail(f"{video_id} duration_seconds must be numeric")
-        if not math.isclose(float(declared_duration), float(duration_sum), rel_tol=0, abs_tol=1e-6):
-            fail(f"{video_id} duration_seconds must equal source_shots sum ({duration_sum})")
+        if not math.isclose(
+            float(declared_duration), float(duration_sum), rel_tol=0, abs_tol=1e-6
+        ):
+            fail(
+                f"{video_id} duration_seconds must equal source_shots sum "
+                f"({duration_sum})"
+            )
         strategy = video["merge_decision"]["strategy"]
         if len(source_shots) > 1 and not strategy.startswith("merged_"):
             fail(f"{video_id} merged shots require merged_* strategy")
         if len(source_shots) == 1 and strategy.startswith("merged_"):
             fail(f"{video_id} single shot must not use merged_* strategy")
-        frame_shots = {frame["shot_id"] for frame in video.get("frame_references", [])}
+        frame_shots = {
+            frame["shot_id"] for frame in video.get("frame_references", [])
+        }
         if frame_shots != set(source_shots):
             fail(f"{video_id} frame_references must match source_shots")
         covered.extend(source_shots)
@@ -448,18 +551,41 @@ def validate_production_level(run_dir: Path) -> None:
             review_path = item.get("review_report_path")
             if not review_path:
                 fail(f"production: asset missing review report: {item.get('asset_name')}")
-            review = validate_schema_file(run_dir / review_path.removeprefix("./"), "generated_asset_review.schema.json")
-            if review.get("status") != "pass" or review.get("asset_version") != item.get("version"):
-                fail(f"production: asset review invalid/stale: {item.get('asset_name')}")
+            review = validate_schema_file(
+                run_dir / review_path.removeprefix("./"),
+                "generated_asset_review.schema.json",
+            )
+            if review.get("status") != "pass" or review.get(
+                "asset_version"
+            ) != item.get("version"):
+                fail(
+                    f"production: asset review invalid/stale: {item.get('asset_name')}"
+                )
     storyboard = read_json(outputs(run_dir) / "storyboard.json")
     for shot in storyboard["shots"]:
-        require_file(outputs(run_dir) / "approved/storyboard_prompts" / f"{shot['shot_id']}.md")
-        require_file(outputs(run_dir) / "approved/storyboards" / f"{shot['shot_id']}.png")
+        require_file(
+            outputs(run_dir)
+            / "approved/storyboard_prompts"
+            / f"{shot['shot_id']}.md"
+        )
+        require_file(
+            outputs(run_dir) / "approved/storyboards" / f"{shot['shot_id']}.png"
+        )
     validate_storyboard_visual_review(run_dir)
     plan = read_json(outputs(run_dir) / "video_segment_plan.json")
     for segment in plan["segments"]:
-        require_file(outputs(run_dir) / "approved/video_generation" / segment["video_id"] / "prompt.txt")
-        require_file(outputs(run_dir) / "approved/video_generation" / segment["video_id"] / "manifest.json")
+        require_file(
+            outputs(run_dir)
+            / "approved/video_generation"
+            / segment["video_id"]
+            / "prompt.txt"
+        )
+        require_file(
+            outputs(run_dir)
+            / "approved/video_generation"
+            / segment["video_id"]
+            / "manifest.json"
+        )
     final_path = outputs(run_dir) / "final_package_manifest.json"
     require_file(final_path)
     final = validate_schema_file(final_path, "final_package_manifest.schema.json")
@@ -505,7 +631,11 @@ def main() -> None:
     args = parser.parse_args()
     run_dir = Path(args.run_dir).resolve()
     if args.level:
-        {"structure": validate_structure_level, "draft": validate_draft_level, "production": validate_production_level}[args.level](run_dir)
+        {
+            "structure": validate_structure_level,
+            "draft": validate_draft_level,
+            "production": validate_production_level,
+        }[args.level](run_dir)
         print("VALIDATION PASSED")
         return
     phase = PHASE_ALIASES.get(args.phase, args.phase)
