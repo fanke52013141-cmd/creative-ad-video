@@ -45,6 +45,17 @@ python scripts/run_pipeline.py RUN_DIR approve --stage art_direction --actor USE
 python scripts/run_pipeline.py RUN_DIR approve --stage storyboard_director --actor USER --reason "分镜通过"
 ```
 
+### 方案自动审查（idea_generation 审批前）
+
+`idea_generation` 产出 `outputs/brief.md` 与 `outputs/story.md` 后、人工审批前，建议运行 `advertising-idea-review` 做自动创意审查：
+
+```text
+# 审查：读 brief.md + story.md → 对话中输出八维诊断报告 → 写 outputs/idea_review_feedback.md
+# 由执行环境按 .agents/skills/advertising-idea-review/SKILL.md 调用
+```
+
+审查只出意见、不放行；放行永远由人工 `approve` / `reject` 决定。`reject` 后进入修订轮：`advertising-idea-strategy` 会自动读取 `outputs/idea_review_feedback.md` 逐条修订，修订后**不自动二次审查**，除非人工明确要求。反馈文件是流程状态，不进 Artifact/Approval Registry、不参与交付校验。
+
 ## 资产提示词与媒体
 
 资产提示词完成后建立哈希清单：

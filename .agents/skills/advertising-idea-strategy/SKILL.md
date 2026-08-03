@@ -15,6 +15,8 @@ description: Turn a user's raw advertising idea or ad-contest brief into a high-
 
 用户会提供以下一种或多种材料，本环节自行识别和整合，缺什么就用什么：
 
+- **修订输入（如存在）**：`outputs/idea_review_feedback.md` —— 上一轮 `advertising-idea-review` 写出的审查问题清单。存在且含 P0/P1 问题时，本环节自动进入「修订模式」（见下），不再从零生成。
+
 - **必要**：产品/品牌名称、核心卖点、目标人群
 - **可选**：产品资料、品牌资料、广告比赛活动说明（命题/约束/评审标准）、参考视频、品牌调性、传播目标、投放平台、广告生产参数（目标时长默认 25-30 秒、画幅比例）、调性偏好、颠度要求、禁忌红线
 
@@ -28,6 +30,18 @@ description: Turn a user's raw advertising idea or ad-contest brief into a high-
 - `outputs/story.md` —— 广告剧本（三段式故事 + 四节拍断崖式夸张 + 产品植入 + 台词/旁白，围绕故事本身组织，含「## 商业信息」段落供下游读取）。
 
 **输出内容由提示词定义，不写死死板模板。** 两份文件的具体字段以 source 提示词的 OutputFiles 段为准。
+
+## 修订模式
+
+当 `outputs/idea_review_feedback.md` 存在时，本环节默认进入修订模式，流程如下：
+
+1. 先读取 `outputs/idea_review_feedback.md` 全文。
+2. 若反馈文件中存在 P0（致命）或 P1（重要）问题：**逐条响应**——对每条问题说明修改方式并落实到新 brief/story；不得改动反馈文件「值得保留」清单中的内容。
+3. 若反馈文件标记为二次审查（审查轮次 > 1），需先确认上一轮已修复项是否真正修复，再处理新增问题。
+4. 修订完成后，将新方案落成 `outputs/brief.md` 与 `outputs/story.md`（覆盖旧版；旧版快照已由 Artifact Registry 保留）。
+5. 修订后的方案**不自动触发二次审查**。是否再审由人工决定。
+
+反馈文件只在本轮作为修订输入，修订完成后保留原文件不动（供追溯）；后续如需二次审查，由 `advertising-idea-review` 覆盖更新该文件。
 
 ## 边界
 
@@ -45,3 +59,4 @@ description: Turn a user's raw advertising idea or ad-contest brief into a high-
 - 目标人群、投放平台、时长、画幅明确或标「待确认」。
 - 是比赛类的，比赛命题和约束已记录。
 - brief.md 与 story.md 均无镜头编号、资产、提示词内容泄漏。
+- 修订模式下，输出必须逐条覆盖反馈文件的每一条 P0/P1 问题，且不破坏「值得保留」清单。

@@ -50,6 +50,24 @@ class PipelineSpecTests(unittest.TestCase):
         ]:
             self.assertTrue(resolve_skill_path(name).is_file())
 
+    def test_idea_review_skill_resolves_and_is_not_reported_as_orphan(self):
+        # advertising-idea-review is invoked by run-ad-pipeline before idea_generation
+        # approval, never by a stage executor, so the contract validator must not
+        # flag it as an orphan skill.
+        self.assertTrue(resolve_skill_path("advertising-idea-review").is_file())
+        result = subprocess.run([sys.executable, str(SCRIPTS / "validate_pipeline_contract.py")], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("orphan", result.stdout)
+
+    def test_idea_strategy_revision_mode_is_wired_to_feedback_file(self):
+        # Revision rounds must read outputs/idea_review_feedback.md instead of
+        # generating from scratch; both the skill wrapper and the source prompt
+        # must reference it.
+        strategy_skill = (ROOT / ".agents" / "skills" / "advertising-idea-strategy" / "SKILL.md").read_text(encoding="utf-8")
+        source = (ROOT / "skills" / "raw_prompts" / "idea_generation.source.md").read_text(encoding="utf-8")
+        self.assertIn("idea_review_feedback.md", strategy_skill)
+        self.assertIn("idea_review_feedback.md", source)
+
     def test_path_escape_is_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaises(ValueError):

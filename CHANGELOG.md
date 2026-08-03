@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-08-03 - v8.1
+
+### Changed
+- [skill] 新增 `.agents/skills/advertising-idea-review/`（含 `SKILL.md`、`agents/openai.yaml`）与 `skills/raw_prompts/idea_review.source.md`：在 `idea_generation` 产出 `brief.md`/`story.md` 后、人工审批前自动执行八维创意审查（世界规则提取、内部逻辑、台词、人物、品牌必然性、情绪节奏、视听叙事、AI 制作优势、文化与伦理），对话中输出分级诊断报告，并把问题清单写入 `outputs/idea_review_feedback.md`。
+- [process] 审查只出意见、不放行；放行永远由人工 `approve` / `reject` 决定。
+- [process] `reject` 后进入修订轮：`advertising-idea-strategy` 自动读取 `outputs/idea_review_feedback.md` 逐条响应 P0/P1 问题，产出新 Artifact Revision；修订后不自动二次审查，仅在人工明确要求时重审（审查轮次 +1）。
+- [process] `outputs/idea_review_feedback.md` 是流程状态文件：不进 Artifact/Approval Registry、不进最终包、不参与 `validate_project.py` 校验。
+- [check] `validate_pipeline_contract.py` 的 orphan skill 白名单加入 `advertising-idea-review`（由 `run-ad-pipeline` 在审批前调用，不挂 stage executor）。
+- [docs] 同步 README、`docs/flow.md`、`PIPELINE_FLOW.md`、`docs/quality_gate_matrix.md`、`docs/iteration_protocol.md`：审查回环 DAG、审批清单、产物目录、质量门矩阵。
+- [tests] 新增 2 个回归测试：审查 skill 非 orphan、idea-strategy 修订模式已接线反馈文件。
+
+### Reason
+- 方案产出后缺少创意质量把关：下游 `style_bible`、分镜和全部提示词都从 `brief.md`/`story.md` 派生，逻辑断点、品牌虚假嵌入和情绪错位会被下游放大。现有审批只做非空检查，不审查创意质量。
+
+### Compatibility
+- 不改变阶段结构、不改变 `config/pipeline.yaml`、不升级 schema、不改变审批动作。
+- 审查是可选项：不运行审查也可照常 `approve` 放行。
+- 旧 Run 无需迁移。
+
+### Validation
+- `python scripts/validate_pipeline_contract.py`
+- `python -m unittest discover -s tests -v`
+- `python scripts/validate_project.py examples/minimal_run --level draft`
+- `python scripts/check_document_references.py`
+- `python scripts/check_repository_policy.py`
+
 ## 2026-08-03 - v8.0
 
 ### Changed

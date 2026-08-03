@@ -1,0 +1,6 @@
+interface:
+  display_name: "Advertising Idea Review"
+  short_description: "对已产出的创意简报与剧本做八维质量审查"
+  default_prompt: "Use $advertising-idea-review to review the produced brief and script before approval."
+policy:
+  allow_implicit_invocation: true

@@ -7,8 +7,11 @@
 ```mermaid
 flowchart TD
     A[需求输入] --> B[创意简报 + 剧本]
-    B --> C{创意审批}
-    C --> D[艺术方向]
+    B --> R[自动审查<br/>advertising-idea-review]
+    R --> C{人工放行}
+    C -- 要改 --> L[修订轮<br/>自动读审查反馈修订]
+    L --> B
+    C -- 放行 --> D[艺术方向]
     D --> E{视觉审批}
     E --> F[分镜导演]
     F --> G{分镜结构与广告文字审批}
@@ -26,6 +29,15 @@ flowchart TD
     O --> P[Manifest 驱动打包]
     P --> Q{Delivery 校验}
 ```
+
+## 创意审查回环
+
+`idea_generation` 产出 `brief.md` + `story.md` 后、人工审批前，运行 `advertising-idea-review` 自动审查：对话中输出八维诊断报告，并把问题清单写入 `outputs/idea_review_feedback.md`。
+
+- 审查**只出意见、不放行**；放行权始终在人工（`approve` / `reject`）。
+- `reject` 后进入修订轮：`advertising-idea-strategy` 自动读取反馈文件逐条修订，产出新 revision。
+- 修订后**不自动二次审查**，除非人工明确要求（此时审查轮次 +1）。
+- `outputs/idea_review_feedback.md` 是流程状态，不进 Artifact/Approval Registry、不进最终包、不参与校验。
 
 ## 状态与数据职责
 

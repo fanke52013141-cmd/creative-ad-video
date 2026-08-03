@@ -61,7 +61,9 @@ def main() -> None:
             errors.append(f"{stage['id']} must declare at least one trackable output")
     configured_skills = set(resolved)
     skill_dirs = {path.parent.name for path in (REPO_ROOT / ".agents" / "skills").glob("*/SKILL.md")}
-    orphan_skills = sorted(skill_dirs - configured_skills - {"run-ad-pipeline"})
+    # run-ad-pipeline: flow-orchestration skill, invoked by the operator between stages, not by a stage executor.
+    # advertising-idea-review: invoked by run-ad-pipeline before idea_generation approval; never a stage executor.
+    orphan_skills = sorted(skill_dirs - configured_skills - {"run-ad-pipeline", "advertising-idea-review"})
     if orphan_skills:
         errors.append("orphan Skills not invoked by PipelineSpec: " + ", ".join(orphan_skills))
     consumer_text = "\n".join(

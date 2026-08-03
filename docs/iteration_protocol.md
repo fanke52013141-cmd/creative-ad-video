@@ -23,6 +23,7 @@
 
 ```text
 idea_generation
+  └─ idea_generation 审批前：advertising-idea-review 自动审查（出意见，人工放行；reject → 修订轮 → 不自动重审）
 → art_direction
 → storyboard_director
 → asset_executor
@@ -40,6 +41,7 @@ idea_generation
 ```text
 outputs/
 ├── story.md
+├── idea_review_feedback.md   （流程状态文件：审查意见，不入 Artifact Registry）
 ├── style_bible.md
 ├── storyboard.json
 ├── asset_manifest.json
@@ -122,6 +124,7 @@ project_slug/
 | 问题类型 | 优先修改文件 |
 |---|---|
 | 阶段顺序、分支选择、人工确认点 | `README.md`, `docs/flow.md`, `config/pipeline.yaml`, `checkpoint.template.json` |
+| 创意审查规则、审查提示词、修订模式 | `.agents/skills/advertising-idea-review/`, `skills/raw_prompts/idea_review.source.md`, `.agents/skills/advertising-idea-strategy/`, `scripts/validate_pipeline_contract.py`（orphan 白名单） |
 | Skill 输入输出边界 | `.agents/skills/*/SKILL.md`, Skill `references/`, `config/pipeline.yaml` |
 | 视频提示词格式、只输出中文、资产声明规则 | `.agents/skills/generate-video-prompts/`, `skills/raw_prompts/seedance_video_prompt.source.md`, `schemas/video_prompt_manifest.schema.json` |
 | 分镜提示词帧角色和站位锚点 | `.agents/skills/generate-storyboard-prompts/`, `docs/flow.md`, `scripts/validate_project.py` |

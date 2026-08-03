@@ -4,6 +4,7 @@
 |---|---|---|
 | Idea Brief | 核心想法、时长、类型、限制不为空 | P0 |
 | Story | 剧本可读、人物动机清楚、总时长匹配项目广告时长；不得输出 `story.json` | P0 |
+| Creative Review（idea_generation 审批前） | 运行 `advertising-idea-review`：提取世界规则、八维审查、输出分级意见并写 `outputs/idea_review_feedback.md`。审查只出意见不放行；修订后不自动重审，二次审查由人工触发 | P1（建议） |
 | Art Direction | 用户视觉方向优先；无明确方向时先给候选方案；最终 `style_bible.md` 只含画面风格、整体色调、光线风格、AI 视觉执行要求 | P1 |
 | Storyboard | 每个 shot 有时长、动作、构图/景别/镜头及 `advertising_text`；广告文字不得后补；不得定义资产 | P0 |
 | Asset Manifest | 人物只按持续可见变化拆变体；场景不按普通光影拆；每个 Prop 声明 business_role；映射资产全部存在 | P0 |
