@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Asset Prompt Manifest",
+  "type": "object",
+  "required": ["schema_version", "prompts"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1.0"},
+    "prompts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["asset_id", "prompt_path", "sha256"],
+        "properties": {
+          "asset_id": {"type": "string"},
+          "prompt_path": {"type": "string"},
+          "sha256": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

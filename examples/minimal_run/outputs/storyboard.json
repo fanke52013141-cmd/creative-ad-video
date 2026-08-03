@@ -1,0 +1,22 @@
+{
+  "shots": [
+    {
+      "shot_id": "S001",
+      "scene_id": "SC001",
+      "duration_seconds": 5,
+      "framing": "中景",
+      "camera_move": "固定",
+      "action_desc": "林小满坐在沙发边缘，手机贴近耳边，右手摩挲毛毯边缘，视线落向茶几。",
+      "advertising_text": []
+    },
+    {
+      "shot_id": "S002",
+      "scene_id": "SC001",
+      "duration_seconds": 5,
+      "framing": "近景",
+      "camera_move": "推近",
+      "action_desc": "林小满轻轻吸气，嘴唇微张又抿紧，眼眶泛红但没有眼泪，手指捏紧手机边缘。",
+      "advertising_text": []
+    }
+  ]
+}

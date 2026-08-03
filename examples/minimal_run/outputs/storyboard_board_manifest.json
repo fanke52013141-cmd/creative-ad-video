@@ -1,0 +1,18 @@
+{
+  "schema_version": "2.0",
+  "boards": [
+    {
+      "board_id": "SB001",
+      "video_id": "V001",
+      "shot_ids": [
+        "S001",
+        "S002"
+      ],
+      "duration_seconds": 10,
+      "required_text": [],
+      "packet_path": "./outputs/storyboard_board_inputs/SB001.json",
+      "prompt_path": "./outputs/storyboard_boards/SB001.md",
+      "prompt_hash": "sha256:fc4f2a9fdb02487b2b0a6cc9fcb5ab4d5341e7e6d48047d27e77a03dfcfe4458"
+    }
+  ]
+}

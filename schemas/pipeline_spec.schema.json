@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Creative Ad Pipeline Specification",
+  "type": "object",
+  "required": ["schema_version", "production_constraints", "production_defaults", "strategy_slots", "stages"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "8.0"},
+    "production_constraints": {
+      "type": "object",
+      "required": ["video_segment_duration_seconds"],
+      "properties": {
+        "video_segment_duration_seconds": {
+          "type": "object",
+          "required": ["minimum", "maximum"],
+          "properties": {
+            "minimum": {"type": "number", "const": 4},
+            "maximum": {"type": "number", "const": 30}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "production_defaults": {
+      "type": "object",
+      "required": ["video_aspect_ratio"],
+      "properties": {
+        "video_aspect_ratio": {"type": "string", "const": "16:9"}
+      },
+      "additionalProperties": false
+    },
+    "strategy_slots": {"type": "object"},
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "executor", "depends_on", "approval_required", "outputs"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+          "type": {"type": "string", "enum": ["strategy", "stable_core", "fulfillment"]},
+          "executor": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": {"type": "string", "enum": ["codex_skill", "provider_or_manual", "script"]},
+              "slot": {"type": "string"},
+              "skill": {"type": "string"},
+              "script": {"type": "string"}
+            },
+            "additionalProperties": false
+          },
+          "depends_on": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+          "approval_required": {"type": "boolean"},
+          "allow_skip": {"type": "boolean"},
+          "skip_effect": {"type": "string", "enum": ["draft_only"]},
+          "outputs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "path", "kind"],
+              "properties": {
+                "name": {"type": "string"},
+                "path": {"type": "string", "pattern": "^\\./outputs/"},
+                "kind": {"type": "string", "enum": ["file", "directory"]},
+                "schema": {"type": "string"}
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

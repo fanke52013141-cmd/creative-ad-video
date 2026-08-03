@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Storyboard Media Manifest",
+  "type": "object",
+  "required": ["schema_version", "media"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1.0"},
+    "media": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["board_id", "revision", "media_revision_id", "media_path", "sha256"],
+        "properties": {
+          "board_id": {"type": "string", "pattern": "^SB[0-9]{3}$"},
+          "revision": {"type": "integer", "minimum": 1},
+          "media_revision_id": {"type": "string"},
+          "media_path": {"type": "string"},
+          "sha256": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "approvals"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1.0"},
+    "approvals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["approval_id", "artifact_revision_id", "artifact_sha256", "stage", "actor", "decision", "comment", "created_at"],
+        "properties": {
+          "approval_id": {"type": "string", "pattern": "^APR-[0-9]{6}$"},
+          "artifact_revision_id": {"type": "string"},
+          "artifact_sha256": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+          "stage": {"type": "string"},
+          "actor": {"type": "string", "minLength": 1},
+          "decision": {"type": "string", "enum": ["approved", "rejected"]},
+          "comment": {"type": "string"},
+          "evidence": {
+            "type": "object",
+            "properties": {
+              "text_verification": {
+                "type": "object",
+                "required": ["declared_text", "verified_text", "exact_match", "extra_text_absent"],
+                "properties": {
+                  "declared_text": {"type": "array", "items": {"type": "string"}},
+                  "verified_text": {"type": "array", "items": {"type": "string"}},
+                  "exact_match": {"type": "boolean"},
+                  "extra_text_absent": {"type": "boolean"}
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "created_at": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Advertising Art Direction"
+  short_description: "把广告策略转译为品牌、产品和平台一致的视觉方向"
+  default_prompt: "Use $advertising-art-direction to create an executable commercial visual direction and style bible from the approved advertising strategy."
+policy:
+  allow_implicit_invocation: true
+

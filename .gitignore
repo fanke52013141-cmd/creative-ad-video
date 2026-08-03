@@ -1,0 +1,66 @@
+# Runtime state
+checkpoint.json
+production_status.csv
+
+# Local daily creative runs
+local_runs/
+creative_runs/
+runs/
+
+# Generated production outputs
+outputs/*
+outputs/**/*
+!outputs/README.md
+!outputs/**/
+!outputs/**/.gitkeep
+
+# User inputs and private references
+inputs/*.md
+!inputs/idea_brief.template.md
+references/
+!skills/references/
+!skills/references/**
+!skills/**/references/
+!skills/**/references/**
+!.agents/**/references/
+!.agents/**/references/**
+references/audio/
+media_references/
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+config/config.local.yaml
+config/secrets.yaml
+
+# Logs and temp files
+logs/
+tmp/
+temp/
+*.log
+__pycache__/
+*.pyc
+
+# Large generated media
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.webm
+*.mp3
+*.wav
+*.flac
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.psd
+*.aep
+*.prproj
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

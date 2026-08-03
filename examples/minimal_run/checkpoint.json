@@ -1,0 +1,40 @@
+{
+  "project": {
+    "name": "creative_ad_video",
+    "slug": "minimal-run-example",
+    "title": "雨夜电话（草稿示例）",
+    "created_at": "2026-07-31T00:00:00Z",
+    "run_dir": "examples/minimal_run"
+  },
+  "schema_version": "8.0",
+  "last_updated": "2026-07-31T00:00:00Z",
+  "current_phase": "final_package",
+  "completed_phases": [
+    "idea_generation", "art_direction", "storyboard_director", "asset_executor",
+    "asset_prompt_generation", "asset_image_generation", "video_segment_planning",
+    "storyboard_prompt_generation", "storyboard_image_generation", "video_prompt_generation"
+  ],
+  "phase_order": [
+    "idea_generation", "art_direction", "storyboard_director",
+    "asset_executor", "asset_prompt_generation", "asset_image_generation",
+    "video_segment_planning", "storyboard_prompt_generation",
+    "storyboard_image_generation", "video_prompt_generation", "final_package"
+  ],
+  "total_phases": 11,
+  "stages": {
+    "idea_generation": {"status": "approved", "version": 1, "updated_at": "2026-07-31T00:00:00Z"},
+    "art_direction": {"status": "approved", "version": 1, "updated_at": "2026-07-31T00:00:00Z"},
+    "storyboard_director": {"status": "approved", "version": 1, "updated_at": "2026-07-31T00:00:00Z"},
+    "asset_executor": {"status": "completed", "version": 1, "updated_at": "2026-07-31T00:00:00Z"},
+    "asset_prompt_generation": {"status": "completed", "version": 1, "updated_at": "2026-07-31T00:00:00Z"},
+    "asset_image_generation": {"status": "skipped", "version": 0, "skip_reason": "draft fixture", "skip_effect": "draft_only", "updated_at": "2026-07-31T00:00:00Z"},
+    "video_segment_planning": {"status": "completed", "version": 1, "updated_at": "2026-07-31T00:00:00Z"},
+    "storyboard_prompt_generation": {"status": "completed", "version": 1, "updated_at": "2026-07-31T00:00:00Z"},
+    "storyboard_image_generation": {"status": "skipped", "version": 0, "skip_reason": "draft fixture", "skip_effect": "draft_only", "updated_at": "2026-07-31T00:00:00Z"},
+    "video_prompt_generation": {"status": "completed", "version": 1, "updated_at": "2026-07-31T00:00:00Z"},
+    "final_package": {"status": "not_started", "version": 0, "updated_at": null}
+  },
+  "blockers": [],
+  "ad_production": {"duration_seconds": 10, "aspect_ratio": "16:9", "min_clip_seconds": 4, "max_clip_seconds": 30, "platform": null},
+  "status": "in_progress"
+}

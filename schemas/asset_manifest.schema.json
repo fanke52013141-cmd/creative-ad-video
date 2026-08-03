@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Asset Manifest",
+  "type": "object",
+  "required": ["characters", "scenes", "props"],
+  "properties": {
+    "naming_policy": { "type": ["string", "null"] },
+    "characters": { "$ref": "#/$defs/assets" },
+    "scenes": { "$ref": "#/$defs/assets" },
+    "props": { "$ref": "#/$defs/assets" }
+  },
+  "$defs": {
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["asset_id", "asset_name", "canonical_name", "asset_type", "generation_required"],
+        "properties": {
+          "asset_id": { "type": "string", "pattern": "^(character|scene|prop)\\.[a-z0-9-]+(\\.[a-z0-9-]+)?$" },
+          "asset_name": { "type": "string" },
+          "canonical_name": { "type": "string" },
+          "variant_name": { "type": ["string", "null"] },
+          "variant_reasons": {
+            "type": ["array", "null"],
+            "items": {"type": "string", "enum": ["base_identity", "age_change", "persistent_costume_change", "persistent_hair_change", "persistent_injury", "identity_transformation", "structural_change", "prop_state_change", "user_required"]}
+          },
+          "asset_type": { "type": "string", "enum": ["character", "scene", "prop"] },
+          "naming_strategy": {
+            "type": ["string", "null"],
+            "enum": ["numbered_subject", "custom_concrete_name", "character_state_name", "simple_scene_number", "concrete_scene_name", "key_prop_name", null]
+          },
+          "seedance_label": { "type": ["string", "null"] },
+          "definition_sentence": { "type": ["string", "null"] },
+          "reference_bindings": {
+            "type": ["array", "null"],
+            "items": {
+              "type": "object",
+              "properties": {
+                "source_id": { "type": "string" },
+                "source_type": { "type": "string", "enum": ["image", "video", "generated_asset", "text_only"] },
+                "role": { "type": "string" },
+                "notes": { "type": ["string", "null"] }
+              }
+            }
+          },
+          "base_name": { "type": ["string", "null"] },
+          "feature": { "type": ["string", "null"] },
+          "state": { "type": ["string", "null"] },
+          "angle_or_view": { "type": ["string", "null"] },
+          "visual_anchors": { "type": ["array", "string", "null"], "items": { "type": "string" } },
+          "generation_required": { "type": "boolean" },
+          "reference_layout": { "type": ["string", "null"], "enum": ["character_turnaround_21x9_v1", "scene_keyplate_quad_v1", "prop_single_reference_v1", "single_reference", null] },
+          "output_prompt_path": { "type": ["string", "null"] },
+          "prompt_scope": { "type": ["string", "null"] },
+          "handling_policy": { "type": ["string", "null"] },
+          "business_role": {
+            "type": ["string", "null"],
+            "enum": ["advertised_product", "story_prop", "set_dressing", null],
+            "description": "Business role for prop assets. Only advertised_product may be referenced by video generation."
+          },
+          "is_key_item": { "type": ["boolean", "null"], "description": "是否为关键物品（贯穿全片、多次出现、对剧情推进有作用的道具）。仅 props 使用。" },
+          "recurrence_count": { "type": ["integer", "null"], "minimum": 0, "description": "该道具在分镜中出现的总次数。仅 props 使用。" },
+          "appearances": { "type": ["array", "null"], "items": { "type": "string" }, "description": "该道具出现的 shot_id 列表。仅 props 使用。" },
+          "notes": { "type": ["string", "null"] }
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"asset_type": {"const": "prop"}}, "required": ["asset_type"]},
+            "then": {"required": ["business_role"]}
+          },
+          {
+            "if": {"properties": {"business_role": {"const": "advertised_product"}}, "required": ["business_role"]},
+            "then": {"properties": {"generation_required": {"const": true}}}
+          }
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

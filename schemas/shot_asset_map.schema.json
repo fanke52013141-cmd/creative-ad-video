@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Shot Asset Map",
+  "type": "object",
+  "required": ["shot_assets"],
+  "properties": {
+    "shot_assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["shot_id", "characters", "scenes", "props"],
+        "properties": {
+          "shot_id": { "type": "string", "pattern": "^S[0-9]{3}$" },
+          "characters": { "type": "array", "items": { "type": "string" } },
+          "scenes": { "type": "array", "items": { "type": "string" } },
+          "props": { "type": "array", "items": { "type": "string" } },
+          "notes": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

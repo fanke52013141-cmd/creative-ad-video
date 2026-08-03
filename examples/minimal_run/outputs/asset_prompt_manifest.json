@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "prompts": [
+    {
+      "asset_id": "character.lin-xiaoman.rainy-home",
+      "prompt_path": "./outputs/assets/characters/prompts/林小满_雨夜居家装.md",
+      "sha256": "sha256:d358ba484ba168a1321d84afa4ff7eb9a9c5b4807b695caff76ef2941aa21848"
+    },
+    {
+      "asset_id": "scene.rainy-living-room.base",
+      "prompt_path": "./outputs/assets/scenes/prompts/雨夜客厅场景.md",
+      "sha256": "sha256:ea942f84c550ee6f699ba12e87a5c595dfaff903ce1969042f1d752c9ac7b86d"
+    }
+  ]
+}

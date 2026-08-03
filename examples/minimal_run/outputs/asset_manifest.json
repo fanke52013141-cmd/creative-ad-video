@@ -1,0 +1,55 @@
+{
+  "naming_policy": "stable_name_with_persistent_variant_when_needed",
+  "characters": [
+    {
+      "asset_id": "character.lin-xiaoman.rainy-home",
+      "canonical_name": "林小满",
+      "variant_name": "雨夜居家装",
+      "variant_reasons": ["persistent_costume_change"],
+      "asset_name": "林小满_雨夜居家装",
+      "asset_type": "character",
+      "naming_strategy": "character_state_name",
+      "seedance_label": "林小满",
+      "reference_layout": "character_turnaround_21x9_v1",
+      "generation_required": true,
+      "output_prompt_path": "./outputs/assets/characters/prompts/林小满_雨夜居家装.md",
+      "prompt_scope": "single_character_state_reference",
+      "handling_policy": "generate_character_state_reference"
+    }
+  ],
+  "scenes": [
+    {
+      "asset_id": "scene.rainy-living-room.base",
+      "canonical_name": "雨夜客厅场景",
+      "variant_name": null,
+      "variant_reasons": ["base_identity"],
+      "asset_name": "雨夜客厅场景",
+      "asset_type": "scene",
+      "naming_strategy": "concrete_scene_name",
+      "seedance_label": "雨夜客厅场景",
+      "generation_required": true,
+      "reference_layout": "scene_keyplate_quad_v1",
+      "output_prompt_path": "./outputs/assets/scenes/prompts/雨夜客厅场景.md",
+      "prompt_scope": "single_scene_reference",
+      "handling_policy": "generate_scene_reference"
+    }
+  ],
+  "props": [
+    {
+      "asset_id": "prop.phone.base",
+      "canonical_name": "手机",
+      "variant_name": null,
+      "variant_reasons": ["base_identity"],
+      "asset_name": "手机",
+      "asset_type": "prop",
+      "business_role": "story_prop",
+      "naming_strategy": "key_prop_name",
+      "seedance_label": "手机",
+      "generation_required": false,
+      "reference_layout": "single_reference",
+      "output_prompt_path": null,
+      "prompt_scope": "text_control_only",
+      "handling_policy": "text_prompt_control"
+    }
+  ]
+}

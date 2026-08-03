@@ -1,0 +1,23 @@
+{
+  "schema_version": "2.0",
+  "videos": [
+    {
+      "video_id": "V001",
+      "source_shots": [
+        "S001",
+        "S002"
+      ],
+      "source_boards": [
+        "SB001"
+      ],
+      "duration_seconds": 10,
+      "aspect_ratio": "16:9",
+      "prompt_path": "./outputs/video_prompts/V001.md",
+      "prompt_hash": "sha256:5ac992b3d420d64739892ea0744767bb9b4f71f825ac9f3fbcf02e1880b13d3c",
+      "character_assets": [
+        "林小满_雨夜居家装"
+      ],
+      "product_assets": []
+    }
+  ]
+}

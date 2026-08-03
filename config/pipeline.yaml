@@ -1,0 +1,111 @@
+schema_version: "8.0"
+
+production_constraints:
+  video_segment_duration_seconds:
+    minimum: 4
+    maximum: 30
+
+production_defaults:
+  video_aspect_ratio: "16:9"
+
+strategy_slots:
+  idea_generation:
+    default_skill: advertising-idea-strategy
+  art_direction:
+    default_skill: advertising-art-direction
+  storyboard_strategy:
+    default_skill: advertising-storyboard-strategy
+stages:
+  - id: idea_generation
+    type: strategy
+    executor: {type: codex_skill, slot: idea_generation}
+    depends_on: []
+    approval_required: true
+    outputs:
+      - {name: brief, path: ./outputs/brief.md, kind: file}
+      - {name: story, path: ./outputs/story.md, kind: file}
+
+  - id: art_direction
+    type: strategy
+    executor: {type: codex_skill, slot: art_direction}
+    depends_on: [idea_generation]
+    approval_required: true
+    outputs:
+      - {name: style_bible, path: ./outputs/style_bible.md, kind: file}
+
+  - id: storyboard_director
+    type: strategy
+    executor: {type: codex_skill, slot: storyboard_strategy}
+    depends_on: [art_direction]
+    approval_required: true
+    outputs:
+      - {name: storyboard, path: ./outputs/storyboard.json, kind: file, schema: storyboard.schema.json}
+
+  - id: asset_executor
+    type: stable_core
+    executor: {type: codex_skill, skill: plan-ad-assets}
+    depends_on: [storyboard_director]
+    approval_required: false
+    outputs:
+      - {name: asset_manifest, path: ./outputs/asset_manifest.json, kind: file, schema: asset_manifest.schema.json}
+      - {name: shot_asset_map, path: ./outputs/shot_asset_map.json, kind: file, schema: shot_asset_map.schema.json}
+
+  - id: asset_prompt_generation
+    type: stable_core
+    executor: {type: codex_skill, skill: generate-asset-prompts}
+    depends_on: [asset_executor]
+    approval_required: false
+    outputs:
+      - {name: asset_prompt_manifest, path: ./outputs/asset_prompt_manifest.json, kind: file, schema: asset_prompt_manifest.schema.json}
+
+  - id: asset_image_generation
+    type: fulfillment
+    executor: {type: provider_or_manual, skill: fulfill-image-generation}
+    depends_on: [asset_prompt_generation]
+    approval_required: false
+    allow_skip: true
+    skip_effect: draft_only
+    outputs:
+      - {name: asset_media_manifest, path: ./outputs/asset_media_manifest.json, kind: file, schema: asset_media_manifest.schema.json}
+
+  - id: video_segment_planning
+    type: stable_core
+    executor: {type: codex_skill, skill: plan-video-segments}
+    depends_on: [asset_executor]
+    approval_required: false
+    outputs:
+      - {name: video_segment_plan, path: ./outputs/video_segment_plan.json, kind: file, schema: video_segment_plan.schema.json}
+
+  - id: storyboard_prompt_generation
+    type: strategy
+    executor: {type: codex_skill, skill: generate-storyboard-prompts}
+    depends_on: [video_segment_planning, asset_prompt_generation, art_direction]
+    approval_required: false
+    outputs:
+      - {name: storyboard_board_manifest, path: ./outputs/storyboard_board_manifest.json, kind: file, schema: storyboard_board_manifest.schema.json}
+
+  - id: storyboard_image_generation
+    type: fulfillment
+    executor: {type: provider_or_manual, skill: fulfill-image-generation}
+    depends_on: [storyboard_prompt_generation]
+    approval_required: false
+    allow_skip: true
+    skip_effect: draft_only
+    outputs:
+      - {name: storyboard_media_manifest, path: ./outputs/storyboard_media_manifest.json, kind: file, schema: storyboard_media_manifest.schema.json}
+
+  - id: video_prompt_generation
+    type: stable_core
+    executor: {type: codex_skill, skill: generate-video-prompts}
+    depends_on: [storyboard_prompt_generation, asset_image_generation, storyboard_image_generation]
+    approval_required: false
+    outputs:
+      - {name: video_prompt_manifest, path: ./outputs/video_prompt_manifest.json, kind: file, schema: video_prompt_manifest.schema.json}
+
+  - id: final_package
+    type: stable_core
+    executor: {type: script, script: scripts/package_production.py}
+    depends_on: [video_prompt_generation]
+    approval_required: false
+    outputs:
+      - {name: final_package_manifest, path: ./outputs/final_package_manifest.json, kind: file, schema: final_package_manifest.schema.json}

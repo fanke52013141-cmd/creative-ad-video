@@ -1,0 +1,16 @@
+{
+  "shot_assets": [
+    {
+      "shot_id": "S001",
+      "characters": ["林小满_雨夜居家装"],
+      "scenes": ["雨夜客厅场景"],
+      "props": ["手机"]
+    },
+    {
+      "shot_id": "S002",
+      "characters": ["林小满_雨夜居家装"],
+      "scenes": ["雨夜客厅场景"],
+      "props": ["手机"]
+    }
+  ]
+}

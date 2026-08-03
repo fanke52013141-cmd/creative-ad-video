@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Storyboard",
+  "type": "object",
+  "required": ["shots"],
+  "properties": {
+    "shots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "shot_id",
+          "scene_id",
+          "duration_seconds",
+          "framing",
+          "camera_move",
+          "action_desc",
+          "advertising_text"
+        ],
+        "properties": {
+          "shot_id": { "type": "string", "pattern": "^S[0-9]{3}$" },
+          "scene_id": { "type": "string", "pattern": "^SC[0-9]{3}$" },
+          "duration_seconds": { "type": ["integer", "number"], "exclusiveMinimum": 0, "maximum": 10 },
+          "framing": { "type": "string" },
+          "camera_move": { "type": "string" },
+          "action_desc": { "type": "string" },
+          "advertising_text": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["content", "role", "placement", "presentation", "must_match_exactly"],
+              "properties": {
+                "content": {"type": "string", "minLength": 1},
+                "role": {"type": "string", "enum": ["brand_name", "slogan", "selling_point", "price", "promotion", "cta", "legal", "product_packaging"]},
+                "placement": {"type": "string", "minLength": 1},
+                "presentation": {"type": "string", "enum": ["in_scene", "graphic_card", "product_packaging", "screen_ui"]},
+                "must_match_exactly": {"const": true}
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

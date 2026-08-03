@@ -1,0 +1,44 @@
+{
+  "board_id": "SB001",
+  "video_id": "V001",
+  "scene_id": "SC001",
+  "duration_seconds": 10,
+  "aspect_ratio": "16:9",
+  "required_text": [],
+  "shots": [
+    {
+      "shot_id": "S001",
+      "role": "first_frame",
+      "framing": "中景",
+      "camera_move": "固定",
+      "action_desc": "林小满坐在沙发边缘，手机贴近耳边，右手摩挲毛毯边缘，视线落向茶几。",
+      "advertising_text": [],
+      "assets": {
+        "characters": [
+          "林小满_雨夜居家装"
+        ],
+        "scenes": [
+          "雨夜客厅场景"
+        ],
+        "key_props": []
+      }
+    },
+    {
+      "shot_id": "S002",
+      "role": "last_frame",
+      "framing": "近景",
+      "camera_move": "推近",
+      "action_desc": "林小满轻轻吸气，嘴唇微张又抿紧，眼眶泛红但没有眼泪，手指捏紧手机边缘。",
+      "advertising_text": [],
+      "assets": {
+        "characters": [
+          "林小满_雨夜居家装"
+        ],
+        "scenes": [
+          "雨夜客厅场景"
+        ],
+        "key_props": []
+      }
+    }
+  ]
+}

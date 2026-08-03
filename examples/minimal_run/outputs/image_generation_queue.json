@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "updated_at": "2026-07-10T15:41:52.588548+00:00",
+  "tasks": [
+    {
+      "task_id": "IMG-0001",
+      "asset_id": "character.lin-xiaoman.rainy-home",
+      "asset_type": "character",
+      "asset_name": "林小满_雨夜居家装",
+      "prompt_path": "./outputs/assets/characters/prompts/林小满_雨夜居家装.md",
+      "status": "pending",
+      "provider": null,
+      "attempt_count": 0,
+      "max_attempts": 3,
+      "last_error_type": null,
+      "last_error": null,
+      "source_image_path": null,
+      "canonical_path": null,
+      "started_at": null,
+      "completed_at": null,
+      "next_retry_at": null
+    },
+    {
+      "task_id": "IMG-0002",
+      "asset_id": "scene.rainy-living-room.base",
+      "asset_type": "scene",
+      "asset_name": "雨夜客厅场景",
+      "prompt_path": "./outputs/assets/scenes/prompts/雨夜客厅场景.md",
+      "status": "pending",
+      "provider": null,
+      "attempt_count": 0,
+      "max_attempts": 3,
+      "last_error_type": null,
+      "last_error": null,
+      "source_image_path": null,
+      "canonical_path": null,
+      "started_at": null,
+      "completed_at": null,
+      "next_retry_at": null
+    }
+  ]
+}

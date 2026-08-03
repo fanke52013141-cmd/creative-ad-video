@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Final Package Manifest",
+  "type": "object",
+  "required": ["schema_version", "package_id", "package_mode", "package_root", "status", "artifacts", "files", "quality_gates", "known_gaps", "blocking_issues", "created_at"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "2.0"},
+    "package_id": {"type": "string", "pattern": "^PKG-"},
+    "package_mode": {"type": "string", "enum": ["linked", "portable"]},
+    "package_root": {"type": "string"},
+    "status": {"type": "string", "enum": ["completed", "revise_required"]},
+    "artifacts": {
+      "type": "object",
+      "required": ["video_segments"],
+      "properties": {
+        "video_segments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["video_id", "folder", "mode", "duration_seconds", "aspect_ratio"],
+            "properties": {
+              "video_id": {"type": "string", "pattern": "^V[0-9]{3}$"},
+              "folder": {"type": "string"},
+              "mode": {"type": "string", "enum": ["linked", "portable"]},
+              "duration_seconds": {"type": "number", "minimum": 4, "maximum": 30},
+              "aspect_ratio": {"type": "string", "pattern": "^[1-9][0-9]*:[1-9][0-9]*$"}
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "size", "sha256"],
+        "properties": {
+          "path": {"type": "string"},
+          "size": {"type": "integer", "minimum": 1},
+          "sha256": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "quality_gates": {
+      "type": "object",
+      "required": ["completed_blockers_checked", "manifest_mapping_used"],
+      "properties": {
+        "completed_blockers_checked": {"type": "boolean"},
+        "manifest_mapping_used": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "known_gaps": {"type": "array"},
+    "blocking_issues": {"type": "array"},
+    "created_at": {"type": "string"}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Resumable Image Generation Queue",
+  "type": "object",
+  "required": ["schema_version", "tasks"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "updated_at": {"type": ["string", "null"]},
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["task_id", "asset_id", "asset_type", "asset_name", "prompt_path", "status", "attempt_count", "max_attempts"],
+        "properties": {
+          "task_id": {"type": "string", "pattern": "^IMG-[0-9]{4}$"},
+          "asset_id": {"type": "string"},
+          "asset_type": {"type": "string", "enum": ["character", "scene", "prop"]},
+          "asset_name": {"type": "string"},
+          "prompt_path": {"type": "string"},
+          "status": {"type": "string", "enum": ["pending", "running", "waiting_for_provider", "succeeded", "failed", "blocked"]},
+          "provider": {"type": ["string", "null"]},
+          "attempt_count": {"type": "integer", "minimum": 0},
+          "max_attempts": {"type": "integer", "minimum": 1},
+          "last_error_type": {"type": ["string", "null"]},
+          "last_error": {"type": ["string", "null"]},
+          "source_image_path": {"type": ["string", "null"]},
+          "canonical_path": {"type": ["string", "null"]},
+          "started_at": {"type": ["string", "null"]},
+          "completed_at": {"type": ["string", "null"]},
+          "next_retry_at": {"type": ["string", "null"]}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Video Prompt Manifest",
+  "type": "object",
+  "required": ["schema_version", "videos"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "2.0"},
+    "videos": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["video_id", "source_shots", "source_boards", "duration_seconds", "aspect_ratio", "prompt_path", "prompt_hash", "character_assets", "product_assets"],
+        "properties": {
+          "video_id": {"type": "string", "pattern": "^V[0-9]{3}$"},
+          "source_shots": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^S[0-9]{3}$"}},
+          "source_boards": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^SB[0-9]{3}$"}},
+          "duration_seconds": {"type": "number", "minimum": 4, "maximum": 30},
+          "aspect_ratio": {"type": "string", "pattern": "^[1-9][0-9]*:[1-9][0-9]*$"},
+          "prompt_path": {"type": "string"},
+          "prompt_hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+          "character_assets": {"type": "array", "items": {"type": "string"}},
+          "product_assets": {"type": "array", "items": {"type": "string"}}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

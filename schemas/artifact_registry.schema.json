@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "artifacts"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1.0"},
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["artifact_revision_id", "artifact_name", "stage", "revision", "canonical_path", "snapshot_path", "sha256", "dependencies", "created_at"],
+        "properties": {
+          "artifact_revision_id": {"type": "string"},
+          "artifact_name": {"type": "string"},
+          "stage": {"type": "string"},
+          "revision": {"type": "integer", "minimum": 1},
+          "canonical_path": {"type": "string"},
+          "snapshot_path": {"type": "string"},
+          "sha256": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+          "dependencies": {"type": "array", "items": {"type": "string"}},
+          "created_at": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

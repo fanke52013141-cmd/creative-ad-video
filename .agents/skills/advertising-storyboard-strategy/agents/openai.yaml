@@ -1,0 +1,7 @@
+interface:
+  display_name: "Advertising Storyboard Strategy"
+  short_description: "把广告策略和风格转成可执行、可校验的镜头序列"
+  default_prompt: "Use $advertising-storyboard-strategy to convert the approved ad narrative and style bible into the shared storyboard JSON."
+policy:
+  allow_implicit_invocation: true
+

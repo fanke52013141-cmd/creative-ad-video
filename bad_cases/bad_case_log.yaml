@@ -1,0 +1,89 @@
+cases:
+  - id: BC-ARTIFACT-001
+    date: 2026-08-01
+    task_type: pipeline_contract
+    failed_stage: asset_image_generation
+    symptom: 合法媒体导入修改上游 Manifest，触发 Artifact 哈希失效
+    root_cause: 计划数据与媒体结果共享同一可变文件
+    expected_behavior: 后续阶段只创建独立 Media Manifest
+    fix_target: schema
+    proposed_change: 拆分 asset/storyboard 计划与媒体结果合同
+    regression_check: test_production_delivery_and_media_tamper_gate
+    status: fixed
+  - id: BC-APPROVAL-001
+    date: 2026-08-01
+    task_type: approval_integrity
+    failed_stage: final_package
+    symptom: 已批准媒体被替换后仍可打包
+    root_cause: 打包只检查 approval_status，不复核 revision/hash
+    expected_behavior: 打包和 production 校验真实 Artifact Approval
+    fix_target: check
+    proposed_change: 统一 verify_artifact_approval
+    regression_check: test_media_approval_becomes_invalid_after_file_edit
+    status: fixed
+  - id: BC-SKILL-001
+    date: 2026-08-01
+    task_type: codex_dispatch
+    failed_stage: asset_executor
+    symptom: codex_skill 指向普通 Markdown 或名称不一致
+    root_cause: 新旧 Skill 布局并存
+    expected_behavior: 所有正式 Skill 位于 .agents/skills 并匹配 frontmatter
+    fix_target: skill
+    proposed_change: 迁移正式 Skill 并强化合同检查
+    regression_check: test_all_referenced_skills_resolve_once
+    status: fixed
+  - id: BC-LEGACY-001
+    date: 2026-08-01
+    task_type: contract_cleanup
+    failed_stage: video_prompt_generation
+    symptom: video_prompts.json 与 video_prompt_manifest.json 并存
+    root_cause: V4 兼容合同未退出
+    expected_behavior: 只保留 video_prompt_manifest.json
+    fix_target: schema
+    proposed_change: 删除旧 Schema、示例和验证函数
+    regression_check: repository policy and contract validation
+    status: fixed
+  - id: BC-DURATION-001
+    date: 2026-08-03
+    task_type: video_generation_contract
+    failed_stage: video_segment_planning
+    symptom: 小于 4 秒的视频生成单元可通过旧 Schema
+    root_cause: 只定义了 30 秒上限，没有模型最小时长门禁
+    expected_behavior: 每个 V### 为 4-30 秒，短镜头只在同场景内合法合并
+    fix_target: schema
+    proposed_change: PipelineSpec 统一时长边界并校验两个下游 Manifest
+    regression_check: test_video_segment_duration_boundaries_are_4_to_30
+    status: fixed
+  - id: BC-REFERENCE-001
+    date: 2026-08-03
+    task_type: video_reference_pollution
+    failed_stage: video_prompt_generation
+    symptom: 场景四宫格和普通道具进入视频模型素材包
+    root_cause: video_prompt_manifest 同时暴露 scene_assets 和 prop_assets
+    expected_behavior: 视频参考只包含 Board、Character 和 advertised_product
+    fix_target: schema
+    proposed_change: 删除旧字段并新增 product_assets 白名单
+    regression_check: test_video_manifest_allows_only_characters_and_advertised_products
+    status: fixed
+  - id: BC-TEXT-001
+    date: 2026-08-03
+    task_type: advertising_text_integrity
+    failed_stage: storyboard_image_generation
+    symptom: 广告文字被无文字负向提示删除或推迟到后期补充
+    root_cause: storyboard.json 没有结构化文字字段，审批也不验证画面文字
+    expected_behavior: 广告文字绑定 Shot、进入 Board 并逐字审批，禁止后期补字
+    fix_target: check
+    proposed_change: advertising_text + required_text + text_verification evidence
+    regression_check: test_advertising_text_propagates_and_requires_exact_board_approval
+    status: fixed
+  - id: BC-ASPECT-001
+    date: 2026-08-03
+    task_type: video_generation_contract
+    failed_stage: video_prompt_generation
+    symptom: 项目未声明画幅时提示词和生产包没有稳定默认值
+    root_cause: 16:9 只存在于局部模板回退，没有贯穿 Manifest
+    expected_behavior: 未声明时统一 16:9，并写入 Board、Prompt 和 Package
+    fix_target: config
+    proposed_change: PipelineSpec production_defaults.video_aspect_ratio
+    regression_check: test_default_video_aspect_ratio_is_16_by_9
+    status: fixed

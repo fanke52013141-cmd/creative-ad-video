@@ -1,0 +1,16 @@
+{
+  "segments": [
+    {
+      "video_id": "V001",
+      "source_shots": ["S001", "S002"],
+      "scene_id": "SC001",
+      "duration_seconds": 10,
+      "merge_strategy": "continuous_action",
+      "merge_reason": "同一空间内接电话动作和情绪反应连续。",
+      "frame_plan": [
+        {"shot_id": "S001", "role": "first_frame"},
+        {"shot_id": "S002", "role": "last_frame"}
+      ]
+    }
+  ]
+}

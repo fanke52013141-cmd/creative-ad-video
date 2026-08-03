@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "pipeline_schema_version", "task_id", "stage", "executor", "dependency_artifacts", "expected_outputs", "status", "created_at"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1.0"},
+    "pipeline_schema_version": {"type": "string", "const": "8.0"},
+    "task_id": {"type": "string", "pattern": "^TASK-[0-9]{6}$"},
+    "stage": {"type": "string"},
+    "executor": {"type": "object"},
+    "dependency_artifacts": {"type": "array", "items": {"type": "string"}},
+    "expected_outputs": {"type": "array"},
+    "output_artifact_revisions": {"type": "array", "items": {"type": "string"}},
+    "status": {"type": "string", "enum": ["ready", "dispatched", "completed", "failed", "invalidated", "skipped"]},
+    "created_at": {"type": "string"}
+  },
+  "additionalProperties": false
+}
