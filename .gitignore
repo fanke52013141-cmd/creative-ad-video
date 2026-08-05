@@ -3,6 +3,8 @@ checkpoint.json
 production_status.csv
 
 # Local daily creative runs
+# 注意：这里只对"尚未跟踪"的 local_runs 生效。若 local_runs/ 曾被 git add 提交，
+# 需先 `git rm -r --cached local_runs/` 取消跟踪，再配合 .gitignore 才真正忽略。
 local_runs/
 creative_runs/
 runs/

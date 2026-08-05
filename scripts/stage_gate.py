@@ -41,7 +41,9 @@ def validate_stage_outputs(run: Path, stage: str, approving: bool = False) -> No
     elif stage == "storyboard_director":
         read(out / "storyboard.json")
     elif stage == "asset_executor":
-        read(out / "asset_manifest.json"); read(out / "shot_asset_map.json")
+        asset_plan = read(out / "asset_manifest.json")
+        read(out / "shot_asset_map.json")
+        _check_asset_reference_layouts(asset_plan)
     elif stage == "asset_prompt_generation":
         manifest = read(out / "asset_prompt_manifest.json")
         for prompt in manifest["prompts"]:
@@ -137,3 +139,29 @@ def validate_stage_outputs(run: Path, stage: str, approving: bool = False) -> No
         final = read(out / "final_package_manifest.json")
         if final.get("status") != "completed":
             raise ValueError("final package is not completed")
+
+
+# 各资产类型强制参考图画幅约定（键用 asset_manifest.json 的 schema 组名复数）：
+# - characters: 21:9 转面四视图（character_turnaround_21x9_v1）
+# - scenes: 16:9 Key Plate + 四宫格（scene_keyplate_quad_v1）
+# - props: 16:9 单参考图（prop_single_reference_v1）
+_REFERENCE_LAYOUT_BY_TYPE = {
+    "characters": "character_turnaround_21x9_v1",
+    "scenes": "scene_keyplate_quad_v1",
+    "props": "prop_single_reference_v1",
+}
+
+
+def _check_asset_reference_layouts(asset_plan: dict) -> None:
+    """Hard-gate the asset-reference aspect-ratio contract at the asset_executor gate."""
+    for group, expected in _REFERENCE_LAYOUT_BY_TYPE.items():
+        for item in asset_plan.get(group, []) or []:
+            name = item.get("asset_name", "?")
+            layout = item.get("reference_layout")
+            if item.get("generation_required") is True and layout != expected:
+                raise ValueError(
+                    f"{group} 资产 {name} 必须使用参考图约定 {expected}"
+                    f"（对应画幅 {'21:9' if '21x9' in expected else '16:9'}），当前为 {layout!r}"
+                )
+            if group == "props" and item.get("business_role") == "advertised_product" and layout != expected:
+                raise ValueError(f"广告商品 {name} 必须使用参考图约定 {expected}，当前为 {layout!r}")

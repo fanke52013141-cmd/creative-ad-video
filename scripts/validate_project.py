@@ -43,6 +43,13 @@ FORBIDDEN_STORYBOARD_FIELDS = {
     "prompt_cn",
 }
 VIDEO_SECTIONS = ["素材：", "提示词：", "约束："]
+# 资产类型 → 强制参考图画幅约定（人物 21:9，场景 16:9，物品 16:9）
+# 键使用 asset_manifest.json 的 schema 组名（复数）。
+_REFERENCE_LAYOUT_BY_TYPE = {
+    "characters": "character_turnaround_21x9_v1",
+    "scenes": "scene_keyplate_quad_v1",
+    "props": "prop_single_reference_v1",
+}
 
 
 def fail(message: str) -> None:
@@ -184,6 +191,14 @@ def validate_assets(run_dir: Path) -> tuple[dict[str, Any], dict[str, Any]]:
                     fail(str(exc))
             if group == "props" and item.get("business_role") == "advertised_product" and item.get("generation_required") is not True:
                 fail(f"advertised product must generate an independent reference: {item.get('asset_name')}")
+            # 画幅 / reference_layout 硬校验（人物 21:9，场景 16:9，物品 16:9）
+            expected_layout = _REFERENCE_LAYOUT_BY_TYPE.get(group)
+            layout = item.get("reference_layout")
+            if item.get("generation_required") is True and expected_layout and layout != expected_layout:
+                fail(
+                    f"{group} asset {item.get('asset_name')} must use reference_layout "
+                    f"{expected_layout}, got {layout!r}"
+                )
     valid_shots = {shot["shot_id"] for shot in storyboard["shots"]}
     mapped_shots = [row.get("shot_id") for row in shot_map.get("shot_assets", [])]
     if len(mapped_shots) != len(set(mapped_shots)):

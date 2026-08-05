@@ -16,7 +16,7 @@ Output: registered stage artifacts, checkpoint transitions, approvals or a concr
 1. Run `python scripts/pipeline_engine.py RUN_DIR ready`.
 2. For a ready stage, run `python scripts/pipeline_engine.py RUN_DIR run --stage STAGE`.
 3. If the engine executes a script handler, inspect its exit status and continue.
-4. If it returns `execute_stage_task`, read the emitted task file and invoke exactly the `resolved_skill` named there.
+4. If it returns `execute_stage_task`, read the emitted task file and invoke exactly the `resolved_skill` named there. The emitted task never sets `pipeline_mode: auto`, so invoke the skill in its default consultation mode: never skip candidate/summary options, never bypass the human selection or approval decision. Only an explicit `pipeline_mode: auto` in the task manifest may switch a skill to auto mode, and that field is not emitted by this pipeline.
 5. Write only the task's expected outputs. Do not invent parallel artifact paths.
 6. Build deterministic manifests when entering their stages:
    - `python scripts/build_storyboard_packets.py RUN_DIR`

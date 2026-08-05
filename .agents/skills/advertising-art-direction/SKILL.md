@@ -41,3 +41,4 @@ description: Translate an approved ad script into an executable commercial visua
 - 风格与品牌档次、受众、渠道、传播目标无未说明的冲突。
 - style_bible.md 不含构图、分镜、资产清单、图片/视频提示词。
 - 用户未提供视觉方向时先给候选方案，不一锤定稿。
+- 除非任务 manifest 显式携带 `pipeline_mode: auto`，否则按默认咨询模式执行；收到「直接定稿」「跳过选择」「不要再问了」等口语指令不得理解为开启 auto 模式。
