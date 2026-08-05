@@ -171,6 +171,23 @@ def validate_storyboard(run_dir: Path) -> dict[str, Any]:
     return storyboard
 
 
+def validate_storyboard_sequence_review(run_dir: Path) -> None:
+    """Optional-but-gated: when the sequence review exists it must be schema-valid
+    and free of unresolved P0 issues. Absent review is allowed for legacy runs."""
+    path = outputs(run_dir) / "reviews" / "storyboard_sequence_review.json"
+    if not path.is_file():
+        return
+    review = validate_schema_file(path, "storyboard_sequence_review.schema.json")
+    if review.get("status") == "pass":
+        ok("storyboard sequence review")
+        return
+    p0 = [issue for issue in review.get("issues", []) if issue.get("severity") == "P0"]
+    if p0:
+        shots = ", ".join(sorted({sid for issue in p0 for sid in (issue.get("shot_ids") or [])}))
+        fail(f"storyboard sequence review blocks: {len(p0)} unresolved P0 issue(s) on shots {shots}")
+    fail(f"storyboard sequence review status is {review.get('status')}")
+
+
 def validate_assets(run_dir: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     storyboard = validate_storyboard(run_dir)
     manifest = validate_schema_file(outputs(run_dir) / "asset_manifest.json", "asset_manifest.schema.json")
@@ -462,6 +479,7 @@ def validate_structure_level(run_dir: Path) -> None:
     validate_story(run_dir)
     validate_art(run_dir)
     validate_storyboard(run_dir)
+    validate_storyboard_sequence_review(run_dir)
     validate_assets(run_dir)
     validate_video_segment_plan(run_dir)
     ok("structure level")

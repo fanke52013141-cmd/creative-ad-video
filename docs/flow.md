@@ -7,6 +7,7 @@
 | `idea_generation` | `brief.md`, `story.md` | human approval + creative review（自动审查意见，人工放行） |
 | `art_direction` | `style_bible.md` | human approval |
 | `storyboard_director` | `storyboard.json` | human approval + explicit advertising text |
+| `storyboard_sequence_review` | `reviews/storyboard_sequence_review.json` | no unresolved P0（镜头边界/时长/抽象词审查） |
 | `asset_executor` | `asset_manifest.json`, `shot_asset_map.json` | immutable plan + prop business role |
 | `asset_prompt_generation` | `asset_prompt_manifest.json` | prompt hash coverage |
 | `asset_image_generation` | `asset_media_manifest.json` | draft-skippable |

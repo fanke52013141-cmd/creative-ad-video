@@ -41,10 +41,18 @@ stages:
     outputs:
       - {name: storyboard, path: ./outputs/storyboard.json, kind: file, schema: storyboard.schema.json}
 
+  - id: storyboard_sequence_review
+    type: stable_core
+    executor: {type: codex_skill, skill: storyboard-sequence-review}
+    depends_on: [storyboard_director]
+    approval_required: false
+    outputs:
+      - {name: storyboard_sequence_review, path: ./outputs/reviews/storyboard_sequence_review.json, kind: file, schema: storyboard_sequence_review.schema.json}
+
   - id: asset_executor
     type: stable_core
     executor: {type: codex_skill, skill: plan-ad-assets}
-    depends_on: [storyboard_director]
+    depends_on: [storyboard_director, storyboard_sequence_review]
     approval_required: false
     outputs:
       - {name: asset_manifest, path: ./outputs/asset_manifest.json, kind: file, schema: asset_manifest.schema.json}

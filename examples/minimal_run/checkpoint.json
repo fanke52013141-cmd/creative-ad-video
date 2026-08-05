@@ -10,21 +10,22 @@
   "last_updated": "2026-07-31T00:00:00Z",
   "current_phase": "final_package",
   "completed_phases": [
-    "idea_generation", "art_direction", "storyboard_director", "asset_executor",
+    "idea_generation", "art_direction", "storyboard_director", "storyboard_sequence_review", "asset_executor",
     "asset_prompt_generation", "asset_image_generation", "video_segment_planning",
     "storyboard_prompt_generation", "storyboard_image_generation", "video_prompt_generation"
   ],
   "phase_order": [
-    "idea_generation", "art_direction", "storyboard_director",
+    "idea_generation", "art_direction", "storyboard_director", "storyboard_sequence_review",
     "asset_executor", "asset_prompt_generation", "asset_image_generation",
     "video_segment_planning", "storyboard_prompt_generation",
     "storyboard_image_generation", "video_prompt_generation", "final_package"
   ],
-  "total_phases": 11,
+  "total_phases": 12,
   "stages": {
     "idea_generation": {"status": "approved", "version": 1, "updated_at": "2026-07-31T00:00:00Z"},
     "art_direction": {"status": "approved", "version": 1, "updated_at": "2026-07-31T00:00:00Z"},
     "storyboard_director": {"status": "approved", "version": 1, "updated_at": "2026-07-31T00:00:00Z"},
+    "storyboard_sequence_review": {"status": "completed", "version": 1, "updated_at": "2026-07-31T00:00:00Z"},
     "asset_executor": {"status": "completed", "version": 1, "updated_at": "2026-07-31T00:00:00Z"},
     "asset_prompt_generation": {"status": "completed", "version": 1, "updated_at": "2026-07-31T00:00:00Z"},
     "asset_image_generation": {"status": "skipped", "version": 0, "skip_reason": "draft fixture", "skip_effect": "draft_only", "updated_at": "2026-07-31T00:00:00Z"},

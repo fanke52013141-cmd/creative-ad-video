@@ -26,6 +26,7 @@
 | idea_generation | pending | `brief.md`, `story.md` |
 | art_direction | pending | `style_bible.md` |
 | storyboard_director | pending | `storyboard.json` |
+| storyboard_sequence_review | pending | `reviews/storyboard_sequence_review.json` |
 | asset_executor | pending | `asset_manifest.json`, `shot_asset_map.json` |
 | asset_prompt_generation | pending | `asset_prompt_manifest.json` |
 | asset_image_generation | draft-skippable | `asset_media_manifest.json` |

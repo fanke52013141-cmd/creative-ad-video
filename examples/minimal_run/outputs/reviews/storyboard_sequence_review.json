@@ -1,0 +1,14 @@
+{
+  "status": "pass",
+  "max_shot_duration_seconds": 5,
+  "duration_check_passed": true,
+  "shot_boundary_check_passed": true,
+  "concretization_check_passed": true,
+  "key_turning_point_visual_evidence_check_passed": true,
+  "storytelling_quality_check_passed": true,
+  "checked_shots": ["S001", "S002"],
+  "p0_count": 0,
+  "p1_count": 0,
+  "p2_count": 0,
+  "issues": []
+}

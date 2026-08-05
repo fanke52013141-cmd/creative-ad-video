@@ -42,11 +42,56 @@ class PipelineSpecTests(unittest.TestCase):
         from pipeline_runtime import ready_stages
         self.assertNotIn("final_package", ready_stages(ROOT / "examples" / "minimal_run", checkpoint))
 
+    def test_sequence_review_is_required_before_asset_executor(self):
+        # storyboard_sequence_review 是 asset_executor 的必需前置阶段。
+        from pipeline_runtime import STAGES
+        self.assertIn("storyboard_sequence_review", STAGES)
+        self.assertEqual(stage_map()["storyboard_sequence_review"]["depends_on"], ["storyboard_director"])
+        self.assertIn("storyboard_sequence_review", stage_map()["asset_executor"]["depends_on"])
+        self.assertTrue(resolve_skill_path("storyboard-sequence-review").is_file())
+        # review 未完成时 asset_executor 不应 ready
+        with tempfile.TemporaryDirectory() as temp:
+            run = Path(temp) / "run"
+            shutil.copytree(ROOT / "examples" / "minimal_run", run)
+            from pipeline_runtime import ready_stages
+            checkpoint = json.loads((run / "checkpoint.json").read_text(encoding="utf-8"))
+            checkpoint["stages"]["storyboard_sequence_review"] = {"status": "not_started", "version": 0, "updated_at": None}
+            checkpoint["stages"]["asset_executor"] = {"status": "not_started", "version": 0, "updated_at": None}
+            checkpoint["blockers"] = []
+            (run / "checkpoint.json").write_text(json.dumps(checkpoint, ensure_ascii=False), encoding="utf-8")
+            ready = ready_stages(run, checkpoint)
+            self.assertNotIn("asset_executor", ready)
+            # review 完成后放行
+            checkpoint = json.loads((run / "checkpoint.json").read_text(encoding="utf-8"))
+            checkpoint["stages"]["storyboard_sequence_review"] = {"status": "completed", "version": 1, "updated_at": "2026-07-31T00:00:00Z"}
+            (run / "checkpoint.json").write_text(json.dumps(checkpoint, ensure_ascii=False), encoding="utf-8")
+            ready = ready_stages(run, checkpoint)
+            self.assertIn("asset_executor", ready)
+
+    def test_sequence_review_p0_blocks_validation(self):
+        # review 存在且含未解决 P0 时，structure 校验必须拦截
+        with tempfile.TemporaryDirectory() as temp:
+            run = Path(temp) / "run"
+            shutil.copytree(ROOT / "examples" / "minimal_run", run)
+            review_path = run / "outputs" / "reviews" / "storyboard_sequence_review.json"
+            self.assertTrue(review_path.is_file())
+            review = json.loads(review_path.read_text(encoding="utf-8"))
+            review["status"] = "revise_required"
+            review["issues"] = [{
+                "severity": "P0", "category": "shot_boundary", "shot_ids": ["S001"],
+                "description": "硬拆", "fix_suggestion": "合并",
+            }]
+            review_path.write_text(json.dumps(review, ensure_ascii=False), encoding="utf-8")
+            result = subprocess.run([sys.executable, "-B", str(SCRIPTS / "validate_project.py"), str(run), "--level", "structure"], capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("unresolved P0", result.stdout)
+
     def test_all_referenced_skills_resolve_once(self):
         for name in [
             "advertising-idea-strategy", "advertising-art-direction",
             "advertising-storyboard-strategy", "plan-ad-assets",
             "generate-storyboard-prompts", "generate-video-prompts",
+            "storyboard-sequence-review",
         ]:
             self.assertTrue(resolve_skill_path(name).is_file())
 

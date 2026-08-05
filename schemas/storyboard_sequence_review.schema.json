@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Storyboard Sequence Review",
+  "type": "object",
+  "required": ["status", "checked_shots", "issues"],
+  "properties": {
+    "status": { "type": "string", "enum": ["pass", "revise_required"] },
+    "max_shot_duration_seconds": { "type": ["integer", "number", "null"] },
+    "duration_check_passed": { "type": ["boolean", "null"] },
+    "shot_boundary_check_passed": { "type": ["boolean", "null"] },
+    "concretization_check_passed": { "type": ["boolean", "null"] },
+    "key_turning_point_visual_evidence_check_passed": { "type": ["boolean", "null"] },
+    "storytelling_quality_check_passed": { "type": ["boolean", "null"] },
+    "checked_shots": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^S[0-9]{3}$" }
+    },
+    "p0_count": { "type": ["integer", "null"] },
+    "p1_count": { "type": ["integer", "null"] },
+    "p2_count": { "type": ["integer", "null"] },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "category", "shot_ids", "description"],
+        "properties": {
+          "id": { "type": ["string", "null"] },
+          "severity": { "type": "string", "enum": ["P0", "P1", "P2"] },
+          "category": {
+            "type": "string",
+            "enum": [
+              "duration",
+              "shot_boundary",
+              "concretization",
+              "storytelling",
+              "space",
+              "prop",
+              "character",
+              "time",
+              "sound",
+              "motif",
+              "style"
+            ]
+          },
+          "shot_ids": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^S[0-9]{3}$" }
+          },
+          "description": { "type": "string" },
+          "fix_suggestion": { "type": ["string", "null"] },
+          "fix_applied": { "type": ["boolean", "null"] },
+          "accepted_by_user": { "type": ["boolean", "null"] }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

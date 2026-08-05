@@ -1,0 +1,6 @@
+interface:
+  display_name: "Storyboard Sequence Review"
+  short_description: "对已产出分镜做连续性、时长、镜头边界与抽象词审查"
+  default_prompt: "Use $storyboard-sequence-review to review the storyboard before asset production."
+policy:
+  allow_implicit_invocation: false

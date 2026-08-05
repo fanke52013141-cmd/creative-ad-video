@@ -40,6 +40,8 @@ def validate_stage_outputs(run: Path, stage: str, approving: bool = False) -> No
         read(out / "style_bible.md")
     elif stage == "storyboard_director":
         read(out / "storyboard.json")
+    elif stage == "storyboard_sequence_review":
+        _check_storyboard_sequence_review(out)
     elif stage == "asset_executor":
         asset_plan = read(out / "asset_manifest.json")
         read(out / "shot_asset_map.json")
@@ -165,3 +167,17 @@ def _check_asset_reference_layouts(asset_plan: dict) -> None:
                 )
             if group == "props" and item.get("business_role") == "advertised_product" and layout != expected:
                 raise ValueError(f"广告商品 {name} 必须使用参考图约定 {expected}，当前为 {layout!r}")
+
+
+def _check_storyboard_sequence_review(out: Path) -> None:
+    """Gate the sequence-review stage: reject completion while any P0 is unresolved."""
+    review = read(out / "reviews" / "storyboard_sequence_review.json")
+    if review.get("status") == "pass":
+        return
+    if review.get("status") != "revise_required":
+        raise ValueError("storyboard sequence review status must be pass or revise_required")
+    p0 = [issue for issue in review.get("issues", []) if issue.get("severity") == "P0"]
+    if p0:
+        shots = "; ".join(sorted({sid for issue in p0 for sid in (issue.get("shot_ids") or [])}))
+        raise ValueError(f"storyboard sequence review blocks: {len(p0)} unresolved P0 issue(s) on shots {shots}")
+    raise ValueError("storyboard sequence review is revise_required without P0 issues; clear remaining issues")
