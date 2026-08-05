@@ -1,5 +1,8 @@
 # Local Run Notes
 
+> 本目录是客户项目数据，位于框架仓库之外（或虽在 `local_runs/` 但被 .gitignore 忽略）。
+> **不要把本目录的任何内容 `git add` 到框架仓库。** 产物只在本地/私有位置流转。
+
 ## Project
 
 - Slug:

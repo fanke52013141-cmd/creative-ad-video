@@ -11,6 +11,8 @@ Input: one initialized local run directory.
 
 Output: registered stage artifacts, checkpoint transitions, approvals or a concrete blocker/next user action.
 
+**Data isolation:** the framework repo stores only the production process, never real project data. Runs should be created outside the repo when possible (`init_local_run.ps1 -RunRoot <external-dir>`); all commands then take the external run's absolute path as RUN_DIR. If a run lives inside the repo (`local_runs/`), its contents are client data that must never be committed — do not `git add` them, and never commit the run directory back to the shared repo.
+
 ## Procedure
 
 1. Run `python scripts/pipeline_engine.py RUN_DIR ready`.

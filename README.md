@@ -29,6 +29,26 @@ python scripts/pipeline_engine.py RUN_DIR run --stage idea_generation
 
 Checkpoint 的阶段结构由 PipelineSpec 动态生成，不在模板中复制阶段列表。
 
+### 项目产物与框架仓库隔离（推荐）
+
+本仓库只存放标准化的生产流程。**实际客户项目的产物（brief、storyboard、媒体、审批记录等）不要提交回这个仓库**。
+
+推荐把每个 run 建在框架仓库**之外**，让产物物理上不在 git 仓库内，从源头杜绝误提交：
+
+```text
+# 在仓库外指定 run 根目录（例如 D:\client-projects）
+powershell -File scripts/init_local_run.ps1 -ProjectSlug your-project-slug -RunRoot D:\client-projects
+
+# 之后所有命令都传外部 run 的绝对路径
+python scripts/pipeline_engine.py D:/client-projects/2026-08-05/your-project-slug ready
+python scripts/validate_project.py D:/client-projects/2026-08-05/your-project-slug --level draft
+```
+
+要点：
+- `-RunRoot` 缺省时仍建在仓库内 `local_runs/`（向后兼容），但那样**产物就在 git 仓库工作区内**，有被 `git add` 误提交的风险。
+- `local_runs/` 已被 `.gitignore` 忽略，但 `.gitignore` 只对**未跟踪**文件生效；一旦某次 `git add local_runs/` 过，之后所有改动都会被跟踪。所以最稳妥的做法是让 run 完全在仓库外。
+- 框架仓库的 `main` 只应包含框架代码，任何真实项目数据都不应出现。
+
 ## DAG 执行与审批
 
 `pipeline_engine.py` 为每个 ready stage 创建 `outputs/tasks/<stage>/TASK-*.json`。任务包含 Skill 名称、真实 Skill 路径、输入 Artifact Revision 和声明输出。完成阶段：
