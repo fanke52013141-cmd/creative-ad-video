@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from artifact_runtime import digest_path
+from manifest_io import read_json, write_json
 from path_safety import relative_to_run, resolve_in_run
 
 
@@ -16,7 +17,7 @@ def main() -> None:
     args = parser.parse_args()
     run = Path(args.run_dir).resolve()
     plan_path = run / "outputs" / "asset_manifest.json"
-    plan = json.loads(plan_path.read_text(encoding="utf-8-sig"))
+    plan = read_json(plan_path)
     prompts = []
     for group in ("characters", "scenes", "props"):
         for item in plan.get(group, []):
@@ -35,7 +36,7 @@ def main() -> None:
                 "sha256": digest_path(prompt),
             })
     target = run / "outputs" / "asset_prompt_manifest.json"
-    target.write_text(json.dumps({"schema_version": "1.0", "prompts": prompts}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_json(target, {"schema_version": "1.0", "prompts": prompts})
     print(f"Wrote {len(prompts)} prompt records: {target}")
 
 

@@ -314,7 +314,7 @@ class ManifestAndPackageTests(unittest.TestCase):
 
             source = Path(temp) / "board.png"
             source.write_bytes(b"board-with-exact-text")
-            registered = subprocess.run([sys.executable, str(SCRIPTS / "register_storyboard_result.py"), str(run), "SB001", str(source)], capture_output=True, text=True)
+            registered = subprocess.run([sys.executable, str(SCRIPTS / "register_media_result.py"), str(run), "--kind", "storyboard", "--id", "SB001", "--source-file", str(source)], capture_output=True, text=True)
             self.assertEqual(registered.returncode, 0, registered.stderr or registered.stdout)
             rejected = subprocess.run([sys.executable, str(SCRIPTS / "approve_media.py"), str(run), "board", "SB001", "--actor", "tester", "--confirm-no-extra-text"], capture_output=True, text=True)
             self.assertNotEqual(rejected.returncode, 0)
@@ -365,13 +365,13 @@ class EndToEndTests(unittest.TestCase):
             source = Path(temp) / "source.png"
             source.write_bytes(b"valid-image-fixture")
             for asset_id in ("character.lin-xiaoman.rainy-home", "scene.rainy-living-room.base"):
-                result = subprocess.run([sys.executable, str(SCRIPTS / "import_generated_media.py"), str(run), asset_id, str(source)], capture_output=True, text=True)
+                result = subprocess.run([sys.executable, str(SCRIPTS / "register_media_result.py"), str(run), "--kind", "asset", "--id", asset_id, "--source-file", str(source)], capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
                 result = subprocess.run([sys.executable, str(SCRIPTS / "approve_media.py"), str(run), "asset", asset_id, "--actor", "tester"], capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
             checkpoint["stages"]["asset_image_generation"].update({"status": "completed", "artifact_revision_ids": register_stage_artifacts(run, checkpoint, "asset_image_generation")})
 
-            result = subprocess.run([sys.executable, str(SCRIPTS / "register_storyboard_result.py"), str(run), "SB001", str(source)], capture_output=True, text=True)
+            result = subprocess.run([sys.executable, str(SCRIPTS / "register_media_result.py"), str(run), "--kind", "storyboard", "--id", "SB001", "--source-file", str(source)], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
             result = subprocess.run([sys.executable, str(SCRIPTS / "approve_media.py"), str(run), "board", "SB001", "--actor", "tester", "--confirm-no-extra-text"], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)

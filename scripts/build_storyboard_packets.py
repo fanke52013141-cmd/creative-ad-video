@@ -4,21 +4,10 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import json
 from pathlib import Path
-from typing import Any
 
+from manifest_io import read_json, write_json, resolve_aspect_ratio
 from path_safety import relative_to_run
-from pipeline_spec import load_pipeline_spec
-
-
-def read_json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8-sig"))
-
-
-def write_json(path: Path, data: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def sha256(path: Path) -> str | None:
@@ -40,8 +29,7 @@ def main() -> None:
     assets = read_json(out / "asset_manifest.json")
     plan = read_json(out / "video_segment_plan.json")
     checkpoint = read_json(run / "checkpoint.json")
-    default_aspect_ratio = load_pipeline_spec()["production_defaults"]["video_aspect_ratio"]
-    aspect_ratio = checkpoint.get("ad_production", {}).get("aspect_ratio") or default_aspect_ratio
+    aspect_ratio = resolve_aspect_ratio(checkpoint)
     shots = {row["shot_id"]: row for row in storyboard["shots"]}
     mapped = {row["shot_id"]: row for row in shot_map["shot_assets"]}
     prop_details = {row["asset_name"]: row for row in assets.get("props", [])}

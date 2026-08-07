@@ -5,9 +5,9 @@ description: Fulfill asset or storyboard image requests through a selected provi
 
 # Fulfill Image Generation
 
-For asset images, consume `asset_prompt_manifest.json`, use the queue scripts, register every result through `register_image_result.py`, and produce `asset_media_manifest.json`.
+For asset images, consume `asset_prompt_manifest.json`, use the queue scripts, register every result through `register_media_result.py --kind asset`, and produce `asset_media_manifest.json`.
 
-For storyboard images, consume `storyboard_board_manifest.json`, register every result through `register_storyboard_result.py`, and produce `storyboard_media_manifest.json`.
+For storyboard images, consume `storyboard_board_manifest.json`, register every result through `register_media_result.py --kind storyboard`, and produce `storyboard_media_manifest.json`.
 
 Never overwrite media, edit an upstream plan manifest or invent approval state. Approval is recorded only through `approve_media.py`.
 
@@ -36,7 +36,7 @@ loop:
   1. python scripts/execute_storyboard_image_queue.py RUN_DIR --provider codex_builtin
      # 该脚本一次只返回恰好一个 SB### 板及其 prompt_path
   2. 只打开返回板的 prompt_path 作为唯一输入，调用图像工具生成 1 张图
-  3. python scripts/register_storyboard_result.py RUN_DIR <board_id> <生成的单张文件>
+  3. python scripts/register_media_result.py RUN_DIR --kind storyboard --id <board_id> --source-file <生成的单张文件>
   4. 回到步骤 1，直到脚本输出 "No eligible board tasks"
 ```
 

@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-08-07 - v8.5
+
+### Changed
+- [refactor] 抽取 `scripts/manifest_io.py` 公共 helper（`read_json`/`write_json`/`resolve_aspect_ratio`），消除三个 `build_*` 脚本中逐字重复的 JSON 读写和画幅解析代码。
+- [refactor] 合并 `scripts/import_generated_media.py` 与 `scripts/register_storyboard_result.py` 为统一的 `scripts/register_media_result.py --kind asset|storyboard`，消除两个导入器 8 步逐行同构的重复代码。
+- [skill] 同步更新 `fulfill-image-generation/SKILL.md` 和 `execute_storyboard_image_queue.py` 的登记命令引用。
+- [tests] 更新 3 处测试引用至新统一入口。
+
+### Reason
+- 三个 build 脚本各自内联了相同的 JSON 读写和画幅解析；两个媒体导入器 8 步逻辑逐行同构，仅 id 字段名/路径/stage 可参数化。合并后消除真实重复，不改变运行时行为。
+
+### Compatibility
+- 不改变 manifest 文件格式、schema、阶段结构或审批动作。
+- `register_image_result.py` 保留为队列调度层，内部改为调用 `register_media_result.py --kind asset`。
+- schema 合并不做：合并两个 media manifest schema 需改 manifest 文件格式+十几处引用，省的只是一个 20 行 schema 文件，投入产出比不成立。
+
 ## 2026-08-07 - v8.4
 
 ### Changed

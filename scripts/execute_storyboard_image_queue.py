@@ -33,7 +33,7 @@ def main() -> None:
         print("No eligible board tasks")
         return
     prompt_path = run / board["prompt_path"].removeprefix("./")
-    register = f"python scripts/register_storyboard_result.py {run} {board['board_id']} <generated-file>"
+    register = f"python scripts/register_media_result.py {run} --kind storyboard --id {board['board_id']} --source-file <generated-file>"
     print(json.dumps({
         "action": "call_builtin_image_tool",
         "board_id": board["board_id"],

@@ -3,16 +3,11 @@
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 
 from artifact_runtime import digest_path
+from manifest_io import read_json, write_json, resolve_aspect_ratio
 from path_safety import relative_to_run
-from pipeline_spec import load_pipeline_spec
-
-
-def read(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
 def main() -> None:
@@ -20,14 +15,13 @@ def main() -> None:
     parser.add_argument("run_dir")
     args = parser.parse_args()
     run = Path(args.run_dir).resolve(); out = run / "outputs"
-    plan = read(out / "video_segment_plan.json")
-    boards = read(out / "storyboard_board_manifest.json")["boards"]
-    shot_map = {row["shot_id"]: row for row in read(out / "shot_asset_map.json")["shot_assets"]}
-    assets = read(out / "asset_manifest.json")
+    plan = read_json(out / "video_segment_plan.json")
+    boards = read_json(out / "storyboard_board_manifest.json")["boards"]
+    shot_map = {row["shot_id"]: row for row in read_json(out / "shot_asset_map.json")["shot_assets"]}
+    assets = read_json(out / "asset_manifest.json")
     known_props = {row["asset_name"]: row for row in assets.get("props", [])}
-    checkpoint = read(run / "checkpoint.json")
-    default_aspect_ratio = load_pipeline_spec()["production_defaults"]["video_aspect_ratio"]
-    aspect_ratio = checkpoint.get("ad_production", {}).get("aspect_ratio") or default_aspect_ratio
+    checkpoint = read_json(run / "checkpoint.json")
+    aspect_ratio = resolve_aspect_ratio(checkpoint)
     videos = []
     for segment in plan["segments"]:
         video_id = segment["video_id"]
@@ -60,7 +54,7 @@ def main() -> None:
             "product_assets": sorted(product_assets),
         })
     target = out / "video_prompt_manifest.json"
-    target.write_text(json.dumps({"schema_version": "2.0", "videos": videos}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_json(target, {"schema_version": "2.0", "videos": videos})
     print(f"Wrote {len(videos)} video prompt records: {target}")
 
 

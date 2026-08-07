@@ -25,7 +25,7 @@ def main() -> None:
         raise SystemExit(f"Task already succeeded: {args.task_id}")
     if args.source_file:
         source = Path(args.source_file).resolve()
-        command = [sys.executable, str(Path(__file__).with_name("import_generated_media.py")), str(run), task["asset_id"], str(source)]
+        command = [sys.executable, str(Path(__file__).with_name("register_media_result.py")), str(run), "--kind", "asset", "--id", task["asset_id"], "--source-file", str(source)]
         result = subprocess.run(command, capture_output=True, text=True)
         if result.returncode:
             mark_failure(task, "import_error", result.stderr or result.stdout, False)
