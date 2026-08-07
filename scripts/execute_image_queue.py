@@ -33,7 +33,7 @@ def main() -> None:
     prompt_path = run / task["prompt_path"].removeprefix("./")
     if args.provider == "codex_builtin":
         task["status"] = "waiting_for_provider"; save(queue_path, queue)
-        print(json.dumps({"action": "call_builtin_image_tool", "task_id": task["task_id"], "prompt_path": str(prompt_path), "register_with": f"python scripts/register_image_result.py {run} {task['task_id']} --source-file <generated-file>"}, ensure_ascii=False, indent=2))
+        print(json.dumps({"action": "call_builtin_image_tool", "task_id": task["task_id"], "prompt_path": str(prompt_path), "expected_output": "exactly_one_image", "contract": "只喂本 task 的 prompt_path，生成且仅生成 1 张图；禁止读取 manifest 或其它 task 提示词，禁止把多个资产合并到一张图。", "register_with": f"python scripts/register_image_result.py {run} {task['task_id']} --source-file <generated-file>"}, ensure_ascii=False, indent=2))
         return
     imports = run / "outputs/imports"
     source = next((imports / f"{task['task_id']}{ext}" for ext in EXTENSIONS if (imports / f"{task['task_id']}{ext}").is_file()), None)

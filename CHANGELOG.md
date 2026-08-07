@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-08-07 - v8.2
+
+### Changed
+- [skill] 重写 `.agents/skills/fulfill-image-generation/SKILL.md`：新增"单任务生成协议（强制）"，把资产图和分镜板图都固化为"队列逐个取任务 → 一任务一张图 → 立即登记 → 再取下一个"的循环，并新增"硬规则：禁止合并生成"与"允许的板内/图内多画面"说明，明确区分正常的板内拼接（≤4 分镜）、角色转面多视角与违规的跨板/跨资产合并。
+- [script] 新增 `scripts/execute_storyboard_image_queue.py`：为分镜板补上与资产图对称的单任务分发器，一次只返回一个未完成的 `SB###` 板及其 `prompt_path`，从源头杜绝执行方一次性面对整份 `storyboard_board_manifest.json` 而批量合图。
+- [script] `scripts/execute_image_queue.py` 的 `codex_builtin` 输出新增 `expected_output: exactly_one_image` 与 `contract` 字段，把"一调用一图、禁止合并"从提示词约束升级为脚本下发的显式契约。
+- [skill] 强化 `.agents/skills/generate-storyboard-prompts/SKILL.md` 与 `.agents/skills/generate-asset-prompts/SKILL.md`：新增"逐板隔离/逐资产隔离（强制）"，要求逐个 packet/资产生成独立提示词，禁止在一条提示词里描述多个 `SB###` 板或多个资产。
+
+### Reason
+- 生图环节此前缺少强制护栏：分镜板链路甚至没有单任务分发器，执行方直接面对整份 manifest，容易把所有分镜板、所有资产排版进同一张图，严重打乱生产节奏。本次通过"最小必要输入"原则——每次生图只暴露单个 `IMG-####` / `SB###` 的 `prompt_path`——从结构上根治批量合图。
+
+### Compatibility
+- 不改变阶段结构、DAG、schema 与审批动作，属纯护栏与文档加固。
+- 旧 Run 无需迁移；新增脚本为可选分发器，不影响既有 `execute_image_queue.py` 流程。
+
+### Validation
+- `python scripts/validate_pipeline_contract.py`
+- `python -m unittest discover -s tests -v`
+- `python scripts/validate_project.py examples/minimal_run --level draft`
+- `python scripts/check_document_references.py`
+- `python scripts/check_repository_policy.py`
+
 ## 2026-08-03 - v8.1
 
 ### Changed
