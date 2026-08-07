@@ -33,6 +33,5 @@
 ## Tests and repository
 
 - [ ] 契约、单元、完整 Production/Delivery 测试全部通过。
-- [ ] V6→V7→V8 及 V7→V8 dry-run/apply 迁移测试通过。
 - [ ] Markdown 不引用不存在的文件。
 - [ ] 不提交真实客户内容、媒体、local_runs、密钥或本地账号信息。

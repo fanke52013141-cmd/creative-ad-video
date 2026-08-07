@@ -39,7 +39,7 @@
 ## Media rules
 
 1. Do not modify an upstream plan Manifest when media is generated.
-2. Register assets with `register_image_result.py` and boards with `register_storyboard_result.py`.
+2. Register assets with `register_image_result.py` and boards with `register_media_result.py --kind storyboard`.
 3. Approve the resulting Artifact Revision with `approve_media.py`.
 4. A new result creates a new revision; never overwrite a prior media file.
 5. Production requires the latest required media revision to have a matching hash-bound approval.

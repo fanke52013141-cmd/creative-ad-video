@@ -94,7 +94,7 @@ python scripts/approve_media.py RUN_DIR asset ASSET_ID --actor USER
 
 ```text
 python scripts/build_storyboard_packets.py RUN_DIR
-python scripts/register_storyboard_result.py RUN_DIR SB001 GENERATED_FILE
+python scripts/register_media_result.py RUN_DIR --kind storyboard --id SB001 --source-file GENERATED_FILE
 python scripts/approve_media.py RUN_DIR board SB001 --actor USER --confirm-no-extra-text
 # 含广告文字时，每条文字按分镜顺序重复传入：
 python scripts/approve_media.py RUN_DIR board SB002 --actor USER --verified-text "现在下单" --confirm-no-extra-text
