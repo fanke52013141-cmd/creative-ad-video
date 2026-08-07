@@ -74,14 +74,9 @@
 ## 推荐校验命令
 
 ```bash
-python scripts/validate_project.py local_runs/YYYY-MM-DD/project_slug --phase initialized
-python scripts/validate_project.py local_runs/YYYY-MM-DD/project_slug --phase story
-python scripts/validate_project.py local_runs/YYYY-MM-DD/project_slug --phase art
-python scripts/validate_project.py local_runs/YYYY-MM-DD/project_slug --phase storyboard
-python scripts/validate_project.py local_runs/YYYY-MM-DD/project_slug --phase assets
-python scripts/validate_project.py local_runs/YYYY-MM-DD/project_slug --phase asset_prompt_generation
-python scripts/validate_project.py local_runs/YYYY-MM-DD/project_slug --phase storyboard_prompt_generation
-python scripts/validate_project.py local_runs/YYYY-MM-DD/project_slug --phase video
+python scripts/validate_project.py local_runs/YYYY-MM-DD/project_slug --level structure
+python scripts/validate_project.py local_runs/YYYY-MM-DD/project_slug --level draft
+python scripts/validate_project.py local_runs/YYYY-MM-DD/project_slug --level production
 python scripts/validate_project.py local_runs/YYYY-MM-DD/project_slug --level delivery
 ```
 

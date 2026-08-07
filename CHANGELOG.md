@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08-07 - v8.3
+
+### Changed
+- [docs] 修正三处文档里已被 `--level` 取代的旧 `--phase` 校验命令,统一为推荐的 `--level structure|draft|production|delivery`:`docs/quality_gate_hardening_protocol.md`(8 条逐 phase 命令)、`docs/repository_policy.md`、`docs/storyboard_loop_protocol.md`。
+- [skill] 修复 `fulfill-image-generation/SKILL.md` 资产图循环的断链:补上前置步骤 `python scripts/build_image_queue.py RUN_DIR`,使"建队列 → 逐个执行"完整衔接,不再直接 execute 一个可能尚未生成的队列。
+- [docs] 消除 `docs/flow.md` 与 `PIPELINE_FLOW.md` 的重复:创意审查回环、V8 视频生成规则、画幅默认值等统一由 `PIPELINE_FLOW.md` 维护,`docs/flow.md` 只保留阶段-产物-Gate 契约表并指向前者,去除双份派生文档。
+- [docs] 为 `CHANGELOG.md` 历史条目中已失效的引用(`--phase all`、已删除的 `validate_seedance_video_prompts.py`)加 HTML 注释标注"已废弃",保留历史原貌的同时避免被当作可执行示例复制。
+
+### Reason
+- `--phase` 逐子命令虽仍可运行,但与 README/AGENTS 定的唯一推荐接口 `--level` 不一致,易误导;`fulfill-image-generation` 资产循环缺 `build_image_queue.py` 前置,存在"队列从未生成"的执行断链;`docs/flow.md` 与 `PIPELINE_FLOW.md` 内容高度重叠,属典型冗余文档,双份维护易失步。
+
+### Compatibility
+- 纯文档与说明修正,不改变脚本行为、阶段结构、schema 与审批;旧 Run 无需迁移。
+
 ## 2026-08-07 - v8.2
 
 ### Changed
@@ -148,13 +162,13 @@
 - 旧 checkpoint.json 的 phase_order 需更新为 11 阶段。
 
 ### Validation
-- `python scripts/validate_project.py examples/minimal_run --phase all` 全部通过。
+- `python scripts/validate_project.py examples/minimal_run --phase all` 全部通过。 <!-- 已废弃：`--phase all` 现会主动报错，请改用 `--level draft`；本行为历史记录，保留原貌。 -->
 
 ## 2026-07-10 - v1.0.4
 
 ### Changed
 - [script] 加强 `scripts/validate_project.py`：支持 `exclusiveMinimum`，补充空/未知/重复 `source_shots` 防御，校验视频段时长必须等于 source shots 总和，并区分单镜头与合并策略。
-- [script] 重写 `scripts/validate_seedance_video_prompts.py`，从旧 `outputs/05_video_prompts/shots/SHOT_XXX.md` 路径改为校验当前扁平产物 `outputs/video_prompts.md` 与 `outputs/video_prompts.json`。
+- [script] 重写 `scripts/validate_seedance_video_prompts.py`，从旧 `outputs/05_video_prompts/shots/SHOT_XXX.md` 路径改为校验当前扁平产物 `outputs/video_prompts.md` 与 `outputs/video_prompts.json`。 <!-- 已废弃：该脚本后续已删除，视频提示词校验并入 validate_project.py 的 validate_video_prompts；本行为历史记录。 -->
 - [schema] `storyboard.schema.json` 将 `duration_seconds` 收紧为 `>0` 且 `<=15`。
 - [schema] `asset_manifest.schema.json` 将 `generation_required` 收紧为 boolean，避免字符串 `"true"` 造成假通过。
 - [schema] 删除未被当前主流程使用且与 Skill 契约冲突的 `art_direction.schema.json` 和旧 `shot_video_prompt.schema.json`。
@@ -172,7 +186,7 @@
 - 旧项目若使用字符串形式的 `generation_required`，需要迁移为 JSON boolean。
 
 ### Validation
-- CI 配置已更新为运行：`python scripts/validate_project.py examples/minimal_run --phase all` 和 `python scripts/validate_seedance_video_prompts.py examples/minimal_run`。
+- CI 配置已更新为运行：`python scripts/validate_project.py examples/minimal_run --phase all` 和 `python scripts/validate_seedance_video_prompts.py examples/minimal_run`。 <!-- 已废弃：`--phase all` 现会报错、`validate_seedance_video_prompts.py` 已删除；当前 CI 见 .github/workflows；本行为历史记录。 -->
 
 ## 2026-07-04 - v1.0.3
 

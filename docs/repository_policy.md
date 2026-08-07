@@ -81,7 +81,7 @@ local_runs/
 1. 执行 `scripts/init_local_run.ps1 -ProjectSlug project-slug`。
 2. 填写生成的 `local_runs/YYYY-MM-DD/project_slug/inputs/idea_brief.md`。
 3. 如使用外部 provider，通过本地环境变量配置凭据；仓库不保存本地密钥配置。
-4. 运行 `python scripts/validate_project.py local_runs/YYYY-MM-DD/project_slug --phase initialized`。
+4. 运行 `python scripts/validate_project.py local_runs/YYYY-MM-DD/project_slug --level structure`。
 5. 按 `README.md` 和 `docs/flow.md` 运行流程。
 
 不要手工复制 `checkpoint.template.json` 作为正式 checkpoint；初始化脚本会写入真实 `project_slug`、创建时间和 run 路径。

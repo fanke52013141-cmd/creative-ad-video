@@ -18,6 +18,9 @@ Never overwrite media, edit an upstream plan manifest or invent approval state. 
 资产图循环：
 
 ```text
+# 前置（只需一次）：由 asset_prompt_manifest.json 生成逐任务队列 image_generation_queue.json
+python scripts/build_image_queue.py RUN_DIR
+
 loop:
   1. python scripts/execute_image_queue.py RUN_DIR --provider codex_builtin
      # 该脚本一次只返回恰好一个 IMG-#### 任务及其 prompt_path

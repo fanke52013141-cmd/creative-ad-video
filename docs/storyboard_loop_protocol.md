@@ -131,7 +131,7 @@ outputs/storyboard.json
 分镜阶段完成后必须通过：
 
 ```bash
-python scripts/validate_project.py local_runs/YYYY-MM-DD/project_slug --phase storyboard
+python scripts/validate_project.py local_runs/YYYY-MM-DD/project_slug --level structure
 ```
 
 检查重点：
