@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-07 - v8.4
+
+### Changed
+- [repo] 退役 V6/V7 迁移链路：删除 `scripts/migrate_run_v6_to_v7.py`、`scripts/migrate_run_v7_to_v8.py`、`docs/migrations/v6-to-v7.md`、`docs/migrations/v7-to-v8.md` 及 `docs/migrations/` 目录；删除 `tests/test_pipeline_hardening.py` 中两个迁移测试用例；`README.md` 的"旧 Run 迁移"改为"已退役"说明；`CHANGELOG.md` 历史条目中的迁移脚本引用加"已废弃"注记。
+
+### Reason
+- 用户确认不再支持 V6/V7 老版本用户迁入；仓库内 example/template 已全部 V8，迁移脚本仅服务历史遗留 run，属纯历史包袱。
+
+### Compatibility
+- 不影响 V8 流水线；测试从 23 降至 21（迁移用例已删）。
+
 ## 2026-08-07 - v8.3
 
 ### Changed
@@ -75,7 +86,7 @@
 - [tests] 新增长度边界、默认画幅、场景污染、商品白名单、文字传播/审批和 V8 迁移回归测试。
 
 ### Compatibility
-- V7 Run 必须执行 `migrate_run_v7_to_v8.py`；旧分镜、Board、Video Prompt 和最终包需要按 V8 语义复核或重建。
+- V7 Run 必须执行 `migrate_run_v7_to_v8.py`；旧分镜、Board、Video Prompt 和最终包需要按 V8 语义复核或重建。 <!-- 已废弃：迁移脚本已移除，不再支持 V6/V7 迁入；本行为历史记录。 -->
 - `video_prompt_manifest.json` 升级到 2.0，不再接受 `scene_assets` 和 `prop_assets`。
 
 ## 2026-08-01 - v7.0
@@ -91,7 +102,7 @@
 - [tests] 新增完整 Production/Delivery、媒体篡改、Board 重建、Task 同步和迁移回归测试。
 
 ### Compatibility
-- V6 run 不再被运行时静默改写；必须先运行 `migrate_run_v6_to_v7.py`。
+- V6 run 不再被运行时静默改写；必须先运行 `migrate_run_v6_to_v7.py`。 <!-- 已废弃：迁移脚本已移除，不再支持 V6/V7 迁入；本行为历史记录。 -->
 - V7 最终包必须重新生成，不能复用 V6 package manifest。
 
 ### Validation

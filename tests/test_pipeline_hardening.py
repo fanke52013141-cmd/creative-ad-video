@@ -418,65 +418,6 @@ class ValidationLevelTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("ambiguous and deprecated", result.stdout)
 
-    def test_v6_to_v8_migration_chain_rebuilds_contracts(self):
-        with tempfile.TemporaryDirectory() as temp:
-            run = Path(temp) / "run"
-            shutil.copytree(ROOT / "examples" / "minimal_run", run)
-            checkpoint = json.loads((run / "checkpoint.json").read_text(encoding="utf-8"))
-            checkpoint["schema_version"] = "6.0"
-            write_json(run / "checkpoint.json", checkpoint)
-            dry = subprocess.run([sys.executable, str(SCRIPTS / "migrate_run_v6_to_v7.py"), str(run), "--dry-run"], capture_output=True, text=True)
-            self.assertEqual(dry.returncode, 0, dry.stderr or dry.stdout)
-            self.assertEqual(json.loads(dry.stdout)["to"], "7.0")
-            applied = subprocess.run([sys.executable, str(SCRIPTS / "migrate_run_v6_to_v7.py"), str(run), "--apply"], capture_output=True, text=True)
-            self.assertEqual(applied.returncode, 0, applied.stderr or applied.stdout)
-            self.assertEqual(json.loads((run / "checkpoint.json").read_text(encoding="utf-8"))["schema_version"], "7.0")
-            upgraded = subprocess.run([sys.executable, str(SCRIPTS / "migrate_run_v7_to_v8.py"), str(run), "--apply"], capture_output=True, text=True)
-            self.assertEqual(upgraded.returncode, 0, upgraded.stderr or upgraded.stdout)
-            self.assertEqual(json.loads((run / "checkpoint.json").read_text(encoding="utf-8"))["schema_version"], "8.0")
-            self.assertTrue((run / "outputs" / "asset_media_manifest.json").is_file())
-            self.assertTrue((run / "outputs" / "storyboard_media_manifest.json").is_file())
-            draft = subprocess.run([sys.executable, str(SCRIPTS / "validate_project.py"), str(run), "--level", "draft"], capture_output=True, text=True)
-            self.assertEqual(draft.returncode, 0, draft.stdout + draft.stderr)
-
-    def test_v7_to_v8_migration_marks_semantic_review(self):
-        with tempfile.TemporaryDirectory() as temp:
-            run = Path(temp) / "run"
-            shutil.copytree(ROOT / "examples" / "minimal_run", run)
-            checkpoint = json.loads((run / "checkpoint.json").read_text(encoding="utf-8"))
-            checkpoint["schema_version"] = "7.0"
-            write_json(run / "checkpoint.json", checkpoint)
-            storyboard = json.loads((run / "outputs" / "storyboard.json").read_text(encoding="utf-8"))
-            for shot in storyboard["shots"]:
-                shot.pop("advertising_text", None)
-            write_json(run / "outputs" / "storyboard.json", storyboard)
-            assets = json.loads((run / "outputs" / "asset_manifest.json").read_text(encoding="utf-8"))
-            assets["props"][0].pop("business_role", None)
-            write_json(run / "outputs" / "asset_manifest.json", assets)
-            videos = json.loads((run / "outputs" / "video_prompt_manifest.json").read_text(encoding="utf-8"))
-            videos["schema_version"] = "1.0"
-            for video in videos["videos"]:
-                video.pop("aspect_ratio", None)
-                video["scene_assets"] = ["雨夜客厅场景"]
-                video["prop_assets"] = ["手机"]
-                video.pop("product_assets", None)
-            write_json(run / "outputs" / "video_prompt_manifest.json", videos)
-
-            dry = subprocess.run([sys.executable, str(SCRIPTS / "migrate_run_v7_to_v8.py"), str(run), "--dry-run"], capture_output=True, text=True)
-            self.assertEqual(dry.returncode, 0, dry.stderr or dry.stdout)
-            report = json.loads(dry.stdout)
-            self.assertEqual(report["text_contract_review_required"], ["S001", "S002"])
-            self.assertEqual(report["product_classification_review_required"], ["手机"])
-            applied = subprocess.run([sys.executable, str(SCRIPTS / "migrate_run_v7_to_v8.py"), str(run), "--apply"], capture_output=True, text=True)
-            self.assertEqual(applied.returncode, 0, applied.stderr or applied.stdout)
-            migrated_checkpoint = json.loads((run / "checkpoint.json").read_text(encoding="utf-8"))
-            self.assertEqual(migrated_checkpoint["schema_version"], "8.0")
-            self.assertEqual(migrated_checkpoint["stages"]["storyboard_director"]["status"], "invalidated")
-            migrated_video = json.loads((run / "outputs" / "video_prompt_manifest.json").read_text(encoding="utf-8"))["videos"][0]
-            self.assertEqual(migrated_video["aspect_ratio"], "16:9")
-            self.assertNotIn("scene_assets", migrated_video)
-            self.assertNotIn("prop_assets", migrated_video)
-
 
 if __name__ == "__main__":
     unittest.main()

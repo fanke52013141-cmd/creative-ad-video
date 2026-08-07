@@ -166,16 +166,9 @@ outputs/
 └── final_package_manifest.json
 ```
 
-## 旧 Run 迁移
+## 旧 Run 迁移（已退役）
 
-```text
-python scripts/migrate_run_v6_to_v7.py RUN_DIR --dry-run
-python scripts/migrate_run_v6_to_v7.py RUN_DIR --apply
-python scripts/migrate_run_v7_to_v8.py RUN_DIR --dry-run
-python scripts/migrate_run_v7_to_v8.py RUN_DIR --apply
-```
-
-V6 Run 先迁到 V7，再迁到 V8。V8 迁移创建 `.v7.bak`，默认把未分类 Prop 标记为 `story_prop` 并要求人工确认商品分类；旧分镜需要确认广告文字契约，分镜板、视频提示词和最终包必须重新生成。
+V6/V7 迁移脚本（`migrate_run_v6_to_v7.py`、`migrate_run_v7_to_v8.py`）已移除。当前流水线为 V8，不再支持从 V6/V7 迁入。历史迁移说明见 git 历史。
 
 ## 仓库验证
 
