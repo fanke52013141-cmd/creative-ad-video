@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08-07 - v8.6
+
+### Changed
+- [docs] 删除 5 个零引用孤岛文档：`docs/audio_reference_protocol.md`（无音频 stage）、`docs/portable_skill_spec.md`、`docs/asset_reference_rules.md`、`docs/character_three_view_protocol.md`、`docs/video_prompt_loop_protocol.md`。
+- [docs] 合并 `docs/quality_gate_matrix.md`（P0/P1 阻塞等级表）和 `docs/phase_state_machine.md`（状态机表）进 `docs/flow.md`，删除原文件。
+- [docs] 删除 `docs/storyboard_loop_protocol.md`（标题与文件名不一致、残留 V6 废弃路径、内容与 SKILL 重叠）。
+- [docs] `docs/iteration_protocol.md` 阶段列表改为指向 `config/pipeline.yaml`，不再重复维护 11 阶段清单；更新状态机引用从 `phase_state_machine.md` 改为 `flow.md`。
+
+### Reason
+- 5 个文档零外部引用，内容已被 SKILL 或流程文档吸收；quality_gate_matrix 与 phase_state_machine 内容独有但薄，并入 flow.md 后消除多份维护；storyboard_loop_protocol 带历史包袱且标题不一致；iteration_protocol 的阶段列表与 config/pipeline.yaml 三处重复维护。
+
+### Compatibility
+- 纯文档清理，不改变脚本、schema、阶段结构或审批动作。
+
 ## 2026-08-07 - v8.5
 
 ### Changed

@@ -19,22 +19,7 @@
 
 ## 当前主流程
 
-仓库当前主流程为 11 阶段扁平产物链：
-
-```text
-idea_generation
-  └─ idea_generation 审批前：advertising-idea-review 自动审查（出意见，人工放行；reject → 修订轮 → 不自动重审）
-→ art_direction
-→ storyboard_director
-→ asset_executor
-→ asset_prompt_generation
-→ asset_image_generation
-→ video_segment_planning
-→ storyboard_prompt_generation
-→ storyboard_image_generation
-→ video_prompt_generation
-→ final_package
-```
+仓库当前主流程的阶段、依赖、executor 和输出以 `config/pipeline.yaml` 为唯一事实源，详见 `docs/flow.md` 的阶段-产物-Gate 契约表。创意审查回环见 `PIPELINE_FLOW.md`。
 
 当前主流程的本地输出目录为：
 
@@ -131,7 +116,7 @@ project_slug/
 | 人物、场景、道具资产命名 | `.agents/skills/plan-ad-assets/`, `schemas/asset_manifest.schema.json`, `schemas/shot_asset_map.schema.json` |
 | 内部/外部图片生成分支 | `.agents/skills/fulfill-image-generation/`, `config/pipeline.yaml`, `checkpoint.template.json` |
 | Schema 契约 | `schemas/*.json`, `scripts/validate_project.py` |
-| 阶段状态机 | `checkpoint.template.json`, `docs/phase_state_machine.md`, `docs/flow.md` |
+| 阶段状态机 | `checkpoint.template.json`, `docs/flow.md` |
 | 仓库提交边界 | `docs/repository_policy.md`, `.gitignore` |
 | 质量检查 | `checks/consistency_checklist.md`, `scripts/validate_project.py`, `.github/workflows/validate.yml` |
 | 默认参数或版本号 | `config/pipeline.yaml`, `CHANGELOG.md` |
