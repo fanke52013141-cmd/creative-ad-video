@@ -20,6 +20,7 @@
           "prompt_path": {"type": "string"},
           "prompt_hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
           "character_assets": {"type": "array", "items": {"type": "string"}},
+          "object_assets": {"type": "array", "items": {"type": "string"}},
           "product_assets": {"type": "array", "items": {"type": "string"}}
         },
         "additionalProperties": false

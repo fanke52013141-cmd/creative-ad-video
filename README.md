@@ -138,7 +138,7 @@ python scripts/package_production.py RUN_DIR --mode portable
 python scripts/validate_project.py RUN_DIR --level delivery
 ```
 
-打包器只读取显式计划、媒体和视频 Manifest，并在每次运行时写入新的 `outputs/final_packages/PKG-*/`。
+打包器只读取显式计划、媒体和视频 Manifest，并在每次运行时写入新的 `outputs/final_packages/PKG-*/`。每个 `V###` 目录采用扁平交付结构：直接放置人物参考图、物品参考图、对应分镜板图片和 `视频提示词.txt`；场景资产不复制到视频目录，镜头清单和额外子目录不生成。视频段的时长、镜头映射和质量信息记录在上级 `final_package_manifest.json` 中。
 
 ## 关键输出
 
@@ -163,6 +163,7 @@ outputs/
 ├── versions/
 ├── tasks/
 ├── final_packages/PKG-*/
+│   └── videos/V###/（人物图片、物品图片、SB###.png、视频提示词.txt）
 └── final_package_manifest.json
 ```
 

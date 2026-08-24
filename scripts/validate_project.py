@@ -448,10 +448,15 @@ def validate_video_prompts(run_dir: Path) -> None:
             name for shot_id in segment["source_shots"] for name in shot_assets[shot_id]["props"]
             if props[name].get("business_role") == "advertised_product"
         })
+        expected_objects = sorted({
+            name for shot_id in segment["source_shots"] for name in shot_assets[shot_id]["props"]
+        })
         if video["character_assets"] != expected_characters:
             fail(f"{video['video_id']} character assets do not match source shots")
         if video["product_assets"] != expected_products:
             fail(f"{video['video_id']} product assets do not match source shots")
+        if "object_assets" in video and video["object_assets"] != expected_objects:
+            fail(f"{video['video_id']} object assets do not match source shots")
         forbidden_refs = [name for name in forbidden_scene_refs + forbidden_prop_refs if f"@{name}" in text]
         if forbidden_refs:
             fail(f"{prompt_file.name} references forbidden scene/non-product assets: {', '.join(forbidden_refs)}")

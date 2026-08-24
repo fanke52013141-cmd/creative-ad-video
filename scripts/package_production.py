@@ -72,7 +72,7 @@ def main() -> None:
         folder.mkdir(parents=True, exist_ok=True)
         references = []
         try:
-            prompt_target = folder / "prompt.md"
+            prompt_target = folder / "视频提示词.txt"
             prompt_row = copy_or_link(run, video["prompt_path"], prompt_target, args.mode)
             if prompt_row["sha256"] != video["prompt_hash"]:
                 blockers.append(f"{video_id}: video prompt hash mismatch")
@@ -94,23 +94,23 @@ def main() -> None:
             if approval_errors:
                 blockers.extend(f"{video_id}: {error}" for error in approval_errors)
             try:
-                row = copy_or_link(run, media["media_path"], folder / "references" / "boards" / f"{board_id}{Path(media['media_path']).suffix.lower()}", args.mode)
+                row = copy_or_link(run, media["media_path"], folder / f"{board_id}{Path(media['media_path']).suffix.lower()}", args.mode)
                 row.update({"role": "storyboard_board", "id": board_id})
                 references.append(row)
             except ValueError as exc:
                 blockers.append(f"{video_id}: {exc}")
         reference_groups = (
-            ("characters", "character_assets", "characters", "character"),
-            ("props", "product_assets", "products", "product"),
+            ("characters", "character_assets", "character"),
+            ("props", "object_assets", "object"),
         )
-        for source_group, key, package_group, role in reference_groups:
-            for name in video[key]:
+        for source_group, key, role in reference_groups:
+            names = video.get(key)
+            if names is None and key == "object_assets":
+                names = video.get("product_assets", [])
+            for name in names or []:
                 item = asset_groups[source_group].get(name)
                 if not item:
                     blockers.append(f"{video_id}: unknown {role} asset {name}")
-                    continue
-                if role == "product" and item.get("business_role") != "advertised_product":
-                    blockers.append(f"{video_id}: non-product prop cannot be a video reference: {name}")
                     continue
                 if not item.get("generation_required"):
                     continue
@@ -123,22 +123,11 @@ def main() -> None:
                     blockers.extend(f"{video_id}: {error}" for error in approval_errors)
                 try:
                     suffix = Path(media["media_path"]).suffix.lower()
-                    row = copy_or_link(run, media["media_path"], folder / "references" / package_group / f"{item['asset_id']}{suffix}", args.mode)
+                    row = copy_or_link(run, media["media_path"], folder / f"{item['asset_id']}{suffix}", args.mode)
                     row.update({"role": role, "id": item["asset_id"], "asset_name": name})
                     references.append(row)
                 except ValueError as exc:
                     blockers.append(f"{video_id}: {exc}")
-        segment = {
-            "video_id": video_id,
-            "source_shots": video["source_shots"],
-            "source_boards": video["source_boards"],
-            "duration_seconds": video["duration_seconds"],
-            "aspect_ratio": video["aspect_ratio"],
-            "package_mode": args.mode,
-            "references": references,
-        }
-        segment_path = folder / "segment.json"
-        segment_path.write_text(json.dumps(segment, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         artifacts.append({
             "video_id": video_id,
             "folder": relative_to_run(run, folder),

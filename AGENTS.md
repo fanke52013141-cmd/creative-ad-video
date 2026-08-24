@@ -17,7 +17,7 @@
 9. Package only explicit, approved manifest references.
 10. Never add media paths, hashes, revisions or approval state to `asset_manifest.json` or `storyboard_board_manifest.json`; use the corresponding media manifest.
 11. Every `V###` video generation unit must be 4-30 seconds. Short `S###` shots remain valid and must be merged without crossing scene boundaries or inventing padding.
-12. Video generation references are limited to approved storyboard boards, characters and advertised products. Never pass scene, set-dressing, effect or ordinary-prop assets to the video model.
+12. Video prompt text remains limited to the approved storyboard-board constraints and character/product semantics; the final `V###` delivery folder may also carry approved story-prop images for visual continuity. Never copy scene assets into a `V###` folder because scene continuity is carried by the storyboard board.
 13. Advertising text must be declared on a storyboard shot, rendered in its board and text-verified before board approval. Post-production text fallback is forbidden.
 14. Use the project aspect ratio; when none is declared, use the PipelineSpec default `16:9` and carry it into every video prompt and package.
 

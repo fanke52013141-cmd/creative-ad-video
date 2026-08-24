@@ -259,13 +259,17 @@ class ManifestAndPackageTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
             final = json.loads((out / "final_package_manifest.json").read_text(encoding="utf-8"))
             root = resolve_in_run(run, final["package_root"], must_exist=True)
-            v1 = json.loads((root / "videos" / "V001" / "segment.json").read_text(encoding="utf-8"))
-            v2 = json.loads((root / "videos" / "V002" / "segment.json").read_text(encoding="utf-8"))
-            self.assertEqual([x["id"] for x in v1["references"] if x["role"] == "storyboard_board"], ["SB001"])
-            self.assertEqual([x["id"] for x in v2["references"] if x["role"] == "storyboard_board"], ["SB002"])
-            self.assertEqual(v1["aspect_ratio"], "16:9")
-            self.assertFalse(any(x["role"] in {"scene", "prop"} for x in v1["references"] + v2["references"]))
-            self.assertEqual({x["role"] for x in v1["references"]}, {"video_prompt", "storyboard_board", "character", "product"})
+            v1 = root / "videos" / "V001"
+            v2 = root / "videos" / "V002"
+            self.assertTrue((v1 / "SB001.png").is_file())
+            self.assertTrue((v2 / "SB002.png").is_file())
+            self.assertTrue((v1 / "视频提示词.txt").is_file())
+            self.assertTrue((v2 / "视频提示词.txt").is_file())
+            self.assertTrue(list(v1.iterdir()))
+            self.assertFalse(any(path.is_dir() for path in v1.iterdir()))
+            self.assertFalse(any(path.name == "segment.json" for path in v1.iterdir()))
+            self.assertFalse(any(path.name.startswith("SC") for path in v1.iterdir()))
+            self.assertEqual(json.loads((out / "final_package_manifest.json").read_text(encoding="utf-8"))["status"], "completed")
 
     def test_board_rebuild_does_not_touch_media_results(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -291,6 +295,7 @@ class ManifestAndPackageTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
             video = json.loads((run / "outputs" / "video_prompt_manifest.json").read_text(encoding="utf-8"))["videos"][0]
             self.assertEqual(video["aspect_ratio"], "16:9")
+            self.assertEqual(video["object_assets"], ["手机"])
             self.assertEqual(video["product_assets"], ["手机"])
             self.assertNotIn("scene_assets", video)
             self.assertNotIn("prop_assets", video)

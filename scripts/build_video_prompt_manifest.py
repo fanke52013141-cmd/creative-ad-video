@@ -29,6 +29,7 @@ def main() -> None:
         if not source_boards:
             raise SystemExit(f"no storyboard boards mapped to {video_id}")
         character_assets: set[str] = set()
+        object_assets: set[str] = set()
         product_assets: set[str] = set()
         for shot_id in segment["source_shots"]:
             mapping = shot_map[shot_id]
@@ -37,6 +38,7 @@ def main() -> None:
                 prop = known_props.get(prop_name)
                 if not prop:
                     raise SystemExit(f"unknown prop in shot asset map: {prop_name}")
+                object_assets.add(prop_name)
                 if prop.get("business_role") == "advertised_product":
                     product_assets.add(prop_name)
         prompt = out / "video_prompts" / f"{video_id}.md"
@@ -51,6 +53,7 @@ def main() -> None:
             "prompt_path": relative_to_run(run, prompt),
             "prompt_hash": digest_path(prompt),
             "character_assets": sorted(character_assets),
+            "object_assets": sorted(object_assets),
             "product_assets": sorted(product_assets),
         })
     target = out / "video_prompt_manifest.json"
