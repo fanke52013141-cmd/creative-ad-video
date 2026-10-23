@@ -1,0 +1,49 @@
+{
+  "brief": {
+    "title": "合成任务：六十秒无对白短片《空出的地方》",
+    "goal": "art",
+    "narrative_form": "standalone",
+    "distribution": "horizontal",
+    "duration_seconds": 60,
+    "episode_count": 1,
+    "production_mode": "generative",
+    "style": "realism",
+    "constraints": [
+      "原创合成评估案例，没有真实人物或实拍结果",
+      "全片无对白，不用字幕、旁白或新增人物背景解释",
+      "单地点雨天公交站，雨在全片持续，地面与衣服湿度不能反向变干",
+      "不生成站牌线路字等不必要文字",
+      "六十秒，横屏，写实，预制作文本"
+    ],
+    "facts": [
+      {
+        "claim": "故事与人物均为原创合成，仅用于方法检验",
+        "source": "storyboard-direction 案例二《空出的地方》"
+      }
+    ]
+  },
+  "story": {
+    "task_id": "CASE-SILENT-STORY",
+    "type": "story",
+    "items": [
+      {
+        "id": "SC101",
+        "scene_goal": "保护与来者：盒子占着干燥座位，被雨淋湿的陌生人想坐又退开",
+        "action": "甲把浅盒向干燥处轻挪并擦掉盒盖水点；乙合伞从东侧走来，站在湿座位前试探性看盒旁干区又移开目光",
+        "duration_seconds": 17
+      },
+      {
+        "id": "SC102",
+        "scene_goal": "犹豫与行动：被看见的需要促成甲承担不便的保护方式",
+        "action": "乙换重心揉膝盖，甲看到后拉开外套拉链，脱下外套干燥内侧折在膝上，把盒子从座位平移到腿上，向乙小幅示意空出的干座位",
+        "duration_seconds": 24
+      },
+      {
+        "id": "SC103",
+        "scene_goal": "坐下与回应：乙坐下并把湿伞尖转向远离盒子的一侧，甲手掌渐渐放松",
+        "action": "乙缓慢坐下给盒子留距离；随后把湿伞移到自己外侧、伞尖转向远离盒子的地面；甲眼睛跟随，松开压紧盒沿的手掌",
+        "duration_seconds": 19
+      }
+    ]
+  }
+}

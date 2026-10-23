@@ -1,0 +1,48 @@
+{
+  "cases": {
+    "coffee": {
+      "shots": 8,
+      "duration_seconds": 30,
+      "scenes": [
+        "SC01",
+        "SC02",
+        "SC03"
+      ]
+    },
+    "silent": {
+      "shots": 10,
+      "duration_seconds": 60,
+      "scenes": [
+        "SC101",
+        "SC102",
+        "SC103"
+      ]
+    }
+  },
+  "fault_injections": [
+    {
+      "case": "missing sound",
+      "rejected": true
+    },
+    {
+      "case": "blank action",
+      "rejected": true
+    },
+    {
+      "case": "duplicate id",
+      "rejected": true
+    },
+    {
+      "case": "unknown scene",
+      "rejected": true
+    },
+    {
+      "case": "zero duration",
+      "rejected": true
+    },
+    {
+      "case": "duration total drift",
+      "rejected": true
+    }
+  ]
+}

@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-24 - Video Flow 0.1 首次真实试用
+
+### Changed
+- [trial] 完成 Video Flow 0.1 首次真实子 Agent 端到端试用（coffee-brief，advertising/realism 路线，automatic 模式）：12 任务、12 个全新上下文子 Agent、10 阶段全部 accepted 并 package；含一次 style revise→修订→复审回环。记录见 `docs/development-status.md`。
+- [status] 更新 8 个已试 Skill 的 package.json（behavioral_evaluation=initial_real_trial_passed，附 last_trial），为 script-ad/script-shortfilm/storyboard-direction 补建 package.json 使 README 的状态登记声明成立；script-shortfilm 保持 pending。
+- [docs] `docs/contracts.md` 补字段类型说明：除 shot_ids（字符串数组）与 duration_seconds（正数）外必填字段均为非空字符串——试用中 asset-planning 曾把 continuity_rules 写成结构化对象被门禁拦截。
+- [skill] 补齐 storyboard-direction 声明但缺失的机械层：新增 evaluation/ 两份合成输入与两份分镜样例（coffee 8 镜 30s、silent 10 镜 60s）、schemas/storyboard-artifact.schema.json、scripts/validate_package.py（对接 contracts.py，六类故障注入全部被拒），修复 `audit_video_skills.py` 报告的 5 处断链；evaluation/README 验证状态改为与实际一致。
+
+### Reason
+- 试用暴露两类真实缺陷：工作者手抄哈希两次错 1 字符（门禁均拦截）、契约文档未钉死标量类型导致结构化误写；均属文档/协议层可消除的摩擦。
+
+### Compatibility
+- 不改变阶段结构、schema、引擎与审批动作；已完成 run 的锁定快照不受影响。
+- 单元测试、doctor、validate_pipeline_contract、check_document_references 全部通过。
+
 ## 2026-08-07 - v8.6
 
 ### Changed

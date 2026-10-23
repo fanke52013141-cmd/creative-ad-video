@@ -1,6 +1,13 @@
 {
   "version": "0.1.0",
   "maturity": "baseline",
-  "behavioral_evaluation": "pending",
-  "scope": "preproduction_text"
+  "scope": "preproduction_text",
+  "behavioral_evaluation": "initial_real_trial_passed",
+  "last_trial": {
+    "date": "2026-10-24",
+    "run": "video-flow-runs/demo (outside repo)",
+    "route": "advertising/brand, realism, 30s vertical",
+    "outcome": "pass",
+    "notes": "经两次门禁拦截（回执手抄哈希、continuity_rules 类型）修复后 pass 3/4/3"
+  }
 }

@@ -1,6 +1,13 @@
 {
   "version": "0.1.0",
   "maturity": "baseline",
-  "behavioral_evaluation": "pending",
-  "scope": "preproduction_text"
+  "scope": "preproduction_text",
+  "behavioral_evaluation": "initial_real_trial_passed",
+  "last_trial": {
+    "date": "2026-10-24",
+    "run": "video-flow-runs/demo (outside repo)",
+    "route": "advertising/brand, realism, 30s vertical",
+    "outcome": "pass",
+    "notes": "story 评审 pass，无放水"
+  }
 }

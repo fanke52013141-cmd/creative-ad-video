@@ -32,4 +32,4 @@
 
 ## 当前验证状态
 
-`scripts/validate_package.py` 将运行两份合成示例及六类故障注入，检查引用与实际汉字数，并可对接仓库当前 contracts.py。结果写入本目录的 mechanical-report.json。首次交付时，独立前向创作测试、实拍、生成平台实测、静帧受众可读性试验均未执行。它们是明确限制，不能由示例文件存在或机械成功替代。后续评测者应记录输入版本、Skill 版本、执行时间、输出引用和具体问题，原作者只负责修复候选。
+`scripts/validate_package.py` 运行两份合成示例（coffee、silent）的 brief/story/storyboard 契约检查与六类故障注入（缺字段、空白字段、重复镜头号、未知场景、零时长、总时长漂移，均须被拒），直接对接仓库当前 `video_flow/contracts.py`，结果写入本目录的 mechanical-report.json；链接与汉字数检查由仓库级 `scripts/audit_video_skills.py` 负责。首次交付时，独立前向创作测试、实拍、生成平台实测、静帧受众可读性试验均未执行；2026-10-24 的真实子 Agent 试用记录见仓库 `docs/development-status.md`。这些是明确限制，不能由示例文件存在或机械成功替代。后续评测者应记录输入版本、Skill 版本、执行时间、输出引用和具体问题，原作者只负责修复候选。

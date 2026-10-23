@@ -1,0 +1,49 @@
+{
+  "brief": {
+    "title": "合成任务：暂歇咖啡三十秒等待广告《等你这杯》",
+    "goal": "brand",
+    "narrative_form": "standalone",
+    "distribution": "horizontal",
+    "duration_seconds": 30,
+    "episode_count": 1,
+    "production_mode": "generative",
+    "style": "realism",
+    "constraints": [
+      "原创合成任务，仅供方法检验，不是客户实案",
+      "虚构品牌暂歇咖啡，已知事实只有本例提供杯装热黑咖啡",
+      "不声称改善工作表现、治疗情绪或任何未证实功效",
+      "包装图形与全部准确文字计划后期合成",
+      "片长三十秒，横屏，写实，预制作文本"
+    ],
+    "facts": [
+      {
+        "claim": "品牌与故事均为原创合成，仅用于方法检验，不能移用为真实品牌授权",
+        "source": "storyboard-direction 案例一《等你这杯》"
+      }
+    ]
+  },
+  "story": {
+    "task_id": "CASE-COFFEE-STORY",
+    "type": "story",
+    "items": [
+      {
+        "id": "SC01",
+        "scene_goal": "清晨办公楼公共休息区，两杯咖啡与空椅建立可见的等待证据",
+        "action": "林坐在桌西，杯A在手边、杯B在空椅前；手机振动显示同事晚到五分钟，林看门外雨与杯B，把手机屏幕朝下放回桌左",
+        "duration_seconds": 10
+      },
+      {
+        "id": "SC02",
+        "scene_goal": "新的不便出现，林改变等待方式，把属于对方的一杯带到入口",
+        "action": "林提起杯B起身走向玻璃门，把杯B放在接待台干燥区域；同事跨过门槛后，林把杯B推入对方易够范围再手指离开",
+        "duration_seconds": 12
+      },
+      {
+        "id": "SC03",
+        "scene_goal": "对方看见照顾并接住，品牌在这一行为之后被识别",
+        "action": "同事双手握稳杯B，与林隔着接待台交换一个点头；两人面向玻璃外短暂停留，画面留出可读区域供后期品牌标版",
+        "duration_seconds": 8
+      }
+    ]
+  }
+}

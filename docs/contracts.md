@@ -10,6 +10,7 @@ style：axis/rule/story_reason。
 storyboard：scene_id/beat/action/start_state/end_state/duration_seconds/axis/cut_motivation/sound。
 assets：kind/description/shot_ids/continuity_rules。
 edit_sound：shot_id/picture_cut/sound/motivation。
+字段类型：除 shot_ids 为非空字符串数组、duration_seconds 为正数外，其余必填字段均为非空字符串；结构化账本放附加字段，不占必填位。
 可附加 dialogue、visual_notes、风险与替代方案等专业字段。时长合计与 brief 差不超过0.5秒。资产/声画必须覆盖全部镜头标识，不允许引用未知镜头。
 
 review：`{task_id,type:"review",target_sha256,coverage,verdict,issues,criteria}`。
