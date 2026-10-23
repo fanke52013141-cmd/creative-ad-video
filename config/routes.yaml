@@ -1,0 +1,23 @@
+version: '0.1.0'
+supported_styles: [realism]
+rules:
+  - id: episodic
+    when: {episode_count_min: 2}
+    supported: false
+    reason: 连载路线尚未完成开发与评估
+  - id: serial
+    when: {narrative_form: serial}
+    supported: false
+    reason: 连载路线尚未完成开发与评估
+  - id: documentary
+    when: {narrative_form: documentary}
+    supported: false
+    reason: 纪录片路线尚未完成开发与评估
+  - id: advertising
+    when: {goal_in: [brand, conversion]}
+    writer: script-ad
+    supported: true
+  - id: shortfilm
+    when: {narrative_form: standalone, goal_in: [entertainment, art, public]}
+    writer: script-shortfilm
+    supported: true

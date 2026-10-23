@@ -1,0 +1,12 @@
+{
+  "title": "虚构短片：最后一盏灯",
+  "goal": "art",
+  "narrative_form": "standalone",
+  "distribution": "horizontal",
+  "duration_seconds": 90,
+  "episode_count": 1,
+  "production_mode": "generative",
+  "style": "realism",
+  "constraints": ["无对白", "一个场景、最多两位人物", "以一个可见选择表现人物变化", "不要求品牌植入或行动号召"],
+  "facts": [{"claim": "人物与情节为原创虚构测试素材", "source": "本仓库合成测试输入"}]
+}

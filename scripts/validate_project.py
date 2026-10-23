@@ -18,6 +18,7 @@ from artifact_runtime import (
     verify_stage_approvals, verify_stage_integrity,
 )
 from pipeline_runtime import APPROVAL_REQUIRED
+from sequence_review_gate import check_sequence_review
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_DIR = REPO_ROOT / "schemas"
@@ -178,14 +179,11 @@ def validate_storyboard_sequence_review(run_dir: Path) -> None:
     if not path.is_file():
         return
     review = validate_schema_file(path, "storyboard_sequence_review.schema.json")
-    if review.get("status") == "pass":
-        ok("storyboard sequence review")
-        return
-    p0 = [issue for issue in review.get("issues", []) if issue.get("severity") == "P0"]
-    if p0:
-        shots = ", ".join(sorted({sid for issue in p0 for sid in (issue.get("shot_ids") or [])}))
-        fail(f"storyboard sequence review blocks: {len(p0)} unresolved P0 issue(s) on shots {shots}")
-    fail(f"storyboard sequence review status is {review.get('status')}")
+    try:
+        check_sequence_review(review, read_json(outputs(run_dir) / "storyboard.json"))
+    except ValueError as exc:
+        fail(str(exc))
+    ok("storyboard sequence review")
 
 
 def validate_assets(run_dir: Path) -> tuple[dict[str, Any], dict[str, Any]]:

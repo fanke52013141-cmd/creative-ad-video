@@ -8,6 +8,7 @@ from jsonschema import Draft202012Validator
 from artifact_runtime import digest_path, verify_artifact_revision
 from path_safety import resolve_in_run
 from pipeline_spec import REPO_ROOT, stage_map
+from sequence_review_gate import check_sequence_review
 
 
 def read(path: Path):
@@ -172,12 +173,4 @@ def _check_asset_reference_layouts(asset_plan: dict) -> None:
 def _check_storyboard_sequence_review(out: Path) -> None:
     """Gate the sequence-review stage: reject completion while any P0 is unresolved."""
     review = read(out / "reviews" / "storyboard_sequence_review.json")
-    if review.get("status") == "pass":
-        return
-    if review.get("status") != "revise_required":
-        raise ValueError("storyboard sequence review status must be pass or revise_required")
-    p0 = [issue for issue in review.get("issues", []) if issue.get("severity") == "P0"]
-    if p0:
-        shots = "; ".join(sorted({sid for issue in p0 for sid in (issue.get("shot_ids") or [])}))
-        raise ValueError(f"storyboard sequence review blocks: {len(p0)} unresolved P0 issue(s) on shots {shots}")
-    raise ValueError("storyboard sequence review is revise_required without P0 issues; clear remaining issues")
+    check_sequence_review(review, read(out / "storyboard.json"))

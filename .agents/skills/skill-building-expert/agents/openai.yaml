@@ -1,0 +1,4 @@
+interface:
+  display_name: "构建skill专家"
+  short_description: "将用户需求与专家证据转成可执行、可验证、分层加载的高质量 Skill"
+  default_prompt: "使用 $skill-building-expert，根据我的需求和参考资料构建可执行、可验证的 Skill。"

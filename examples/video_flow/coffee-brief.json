@@ -1,0 +1,12 @@
+{
+  "title": "虚构品牌：同桌咖啡30秒故事广告",
+  "goal": "brand",
+  "narrative_form": "standalone",
+  "distribution": "vertical",
+  "duration_seconds": 30,
+  "episode_count": 1,
+  "production_mode": "generative",
+  "style": "realism",
+  "constraints": ["虚构品牌，仅供标准验证", "品牌名同桌咖啡", "两位人物、一个空间", "不添加健康功效或销量", "重点是从各忙各的到愿意坐下来分享"],
+  "facts": [{"claim": "品牌与故事均为虚构", "source": "本仓库合成测试输入"}]
+}

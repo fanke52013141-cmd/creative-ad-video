@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "script-shortfilm/story-artifact.schema.json",
+  "title": "Shortfilm candidate using the universal story envelope",
+  "type": "object",
+  "required": ["task_id", "type", "items"],
+  "properties": {
+    "task_id": {"type": "string", "minLength": 1},
+    "type": {"const": "story"},
+    "status": {"const": "candidate"},
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "scene_goal", "action", "duration_seconds", "dialogue"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "scene_goal": {"type": "string", "minLength": 1},
+          "action": {"type": "string", "minLength": 1},
+          "duration_seconds": {"type": "number", "exclusiveMinimum": 0},
+          "dialogue": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["speaker", "text"],
+              "properties": {
+                "speaker": {"type": "string", "minLength": 1},
+                "text": {"type": "string", "minLength": 1},
+                "intention": {"type": "string"}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$comment": "Uniqueness of item ids, finite numeric values and sum versus brief are checked by the runtime and package evaluation. This schema is not an acceptance gate."
+}

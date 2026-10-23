@@ -1,0 +1,77 @@
+version: '0.1.0'
+delivery_level: preproduction_text
+repair_limit: 2
+stages:
+  - id: story
+    skill: '$writer'
+    role: writer
+    artifact_type: story
+    inputs: [brief, route]
+    depends_on: []
+  - id: story_review
+    skill: script-review
+    role: reviewer
+    artifact_type: review
+    inputs: [brief, route, story]
+    depends_on: [story]
+    reviews: story
+    criteria: [constraints, causality, visualization, duration, route_fit]
+    human_gate: true
+  - id: style
+    skill: art-direction
+    role: art-director
+    artifact_type: style
+    inputs: [brief, route, story]
+    depends_on: [story_review]
+  - id: style_review
+    skill: production-review
+    role: reviewer
+    artifact_type: review
+    inputs: [brief, story, style]
+    depends_on: [style]
+    reviews: style
+    criteria: [story_fit, coherence, executability]
+    human_gate: true
+  - id: storyboard
+    skill: storyboard-direction
+    role: storyboard-director
+    artifact_type: storyboard
+    inputs: [brief, story, style]
+    depends_on: [style_review]
+  - id: storyboard_review
+    skill: storyboard-review
+    role: reviewer
+    artifact_type: review
+    inputs: [brief, story, style, storyboard]
+    depends_on: [storyboard]
+    reviews: storyboard
+    criteria: [narrative, space, continuity, rhythm, style, sound, feasibility]
+    human_gate: true
+  - id: assets
+    skill: asset-planning
+    role: production-planner
+    artifact_type: assets
+    inputs: [brief, style, storyboard]
+    depends_on: [storyboard_review]
+  - id: assets_review
+    skill: production-review
+    role: reviewer
+    artifact_type: review
+    inputs: [style, storyboard, assets]
+    depends_on: [assets]
+    reviews: assets
+    criteria: [coverage, identity, state]
+  - id: edit_sound
+    skill: edit-sound-plan
+    role: editor
+    artifact_type: edit_sound
+    inputs: [brief, story, storyboard]
+    depends_on: [storyboard_review]
+  - id: edit_sound_review
+    skill: production-review
+    role: reviewer
+    artifact_type: review
+    inputs: [brief, storyboard, edit_sound]
+    depends_on: [edit_sound]
+    reviews: edit_sound
+    criteria: [coverage, motivation, sound_space]

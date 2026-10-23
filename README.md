@@ -1,182 +1,57 @@
-# AI 广告视频前期生产流水线
+# Video Flow
 
-## V8.0：分镜板优先的视频生成契约
+基于 creative-ad-video V8 重构的视频创作执行标准。原项目保留在本仓库的旧命令中，新流程从 `python -m video_flow` 进入；二者状态不可混用。
 
-本仓库把广告需求转换为创意简报、剧本、视觉方向、分镜、资产计划、图片提示词、媒体版本、分镜板和视频提示词。实际视频生成、剪辑与投放仍属于外部执行范围。
+## 首版能力
 
-V8 保留 V7 的不可变 Artifact/Approval 机制，并增加：
+支持品牌/转化广告和单篇艺术、娱乐、公共表达短片，写实风格，交付前期文本包。主Agent协调；专业子Agent以新上下文处理指定任务；独立review后接受产物。阶段与依赖只有config/workflow.yaml一份定义。
 
-- `config/pipeline.yaml` 是阶段、DAG、executor、审批、skip 和声明产物的唯一事实源。
-- 上游计划 Manifest 完成后不可修改；媒体结果写入独立 Media Manifest。
-- 每个普通文件和媒体文件都登记为 Artifact Revision。
-- Approval Registry 只审批真实 Artifact Revision，并绑定 SHA-256。
-- 资产和分镜板媒体批准后被替换，会阻止 Production、打包和 Delivery。
-- 所有正式 Codex Skill 位于 `.agents/skills/<name>/SKILL.md`。
-- 视频提示词只使用 `video_prompt_manifest.json`，不再支持 `video_prompts.json`。
-- 每个 `V###` 视频生成单元必须为 4–30 秒；短镜头只能在同场景内合并，禁止虚构填充时长。
-- 未特别指定画幅时使用 `16:9`，并贯穿分镜包、视频提示词和最终生产包。
-- 视频模型只引用分镜板、人物和 `advertised_product` 商品，不再接收场景、装饰、特效或普通道具参考。
-- 广告文字必须在 `storyboard.json` 声明、直接生成到分镜板并逐字审批，禁止后期补字回退。
+包含多维路由、锁定Skill快照、输入版本/hash、真实agent ID绑定、回执校验、审查覆盖、修订预算、批准门禁、上下游失效、并发锁和交付清单。
 
-## 安装与初始化
+连载、长片、纪录片、其他风格与真实媒体生成尚未开放；未知路线明确阻断。广告/短片/分镜专业包的建设与评估状态记录在各自package.json，其他支撑Skill为基础版，不冒称已完成全部专业深度。
 
-```text
+## 开始
+
+```powershell
 python -m pip install -r requirements.txt
-powershell -File scripts/init_local_run.ps1 -ProjectSlug your-project-slug
-python scripts/pipeline_engine.py RUN_DIR ready
-python scripts/pipeline_engine.py RUN_DIR run --stage idea_generation
+$env:PYTHONUTF8='1'
+python -m video_flow doctor
+python -m video_flow init ../video-flow-runs/demo --brief examples/video_flow/coffee-brief.json
+python -m video_flow status ../video-flow-runs/demo
+python -m video_flow dispatch ../video-flow-runs/demo story
 ```
 
-Checkpoint 的阶段结构由 PipelineSpec 动态生成，不在模板中复制阶段列表。
+然后由Codex主Agent按 [适配说明](adapters/codex.md) spawn新上下文工作者、bind真实ID、等待并submit。CLI本身不能启动聊天中的子Agent；输出task packet仅代表待执行。使用 `$run-video-flow` 可以让接入本仓库的Agent遵循该流程。
 
-### 项目产物与框架仓库隔离（推荐）
+默认剧本、风格与分镜通过独立质量检查后仍需用户批准；展示具体作品取得决定，再运行approve。启动时可明确选择 `--approval automatic`，独立质量审查仍保留。局部创作修订用invalidate；初始需求变更创建新run，避免改写锁定事实。
 
-本仓库只存放标准化的生产流程。**实际客户项目的产物（brief、storyboard、媒体、审批记录等）不要提交回这个仓库**。
-
-推荐把每个 run 建在框架仓库**之外**，让产物物理上不在 git 仓库内，从源头杜绝误提交：
-
-```text
-# 在仓库外指定 run 根目录（例如 D:\client-projects）
-powershell -File scripts/init_local_run.ps1 -ProjectSlug your-project-slug -RunRoot D:\client-projects
-
-# 之后所有命令都传外部 run 的绝对路径
-python scripts/pipeline_engine.py D:/client-projects/2026-08-05/your-project-slug ready
-python scripts/validate_project.py D:/client-projects/2026-08-05/your-project-slug --level draft
+```powershell
+python -m video_flow bind RUN TASK_ID ACTUAL_AGENT_ID
+python -m video_flow submit RUN TASK_ID
+python -m video_flow approve RUN story_review --actor USER --reason '用户对该版本的具体批准'
+python -m video_flow retry RUN TASK_ID --reason '工具失败或缺失输入'
+python -m video_flow invalidate RUN story --reason '创作修订原因'
+python -m video_flow package RUN
 ```
 
-要点：
-- `-RunRoot` 缺省时仍建在仓库内 `local_runs/`（向后兼容），但那样**产物就在 git 仓库工作区内**，有被 `git add` 误提交的风险。
-- `local_runs/` 已被 `.gitignore` 忽略，但 `.gitignore` 只对**未跟踪**文件生效；一旦某次 `git add local_runs/` 过，之后所有改动都会被跟踪。所以最稳妥的做法是让 run 完全在仓库外。
-- 框架仓库的 `main` 只应包含框架代码，任何真实项目数据都不应出现。
+[任务契约](docs/contracts.md) 说明候选、审查与回执。所有run应置于仓库外；不向框架提交客户资料。
 
-## DAG 执行与审批
+## 验证
 
-`pipeline_engine.py` 为每个 ready stage 创建 `outputs/tasks/<stage>/TASK-*.json`。任务包含 Skill 名称、真实 Skill 路径、输入 Artifact Revision 和声明输出。完成阶段：
-
-```text
-python scripts/run_pipeline.py RUN_DIR complete --stage STAGE
-```
-
-三个策略阶段需要人工批准：
-
-```text
-python scripts/run_pipeline.py RUN_DIR approve --stage idea_generation --actor USER --reason "创意通过"
-python scripts/run_pipeline.py RUN_DIR approve --stage art_direction --actor USER --reason "视觉通过"
-python scripts/run_pipeline.py RUN_DIR approve --stage storyboard_director --actor USER --reason "分镜通过"
-```
-
-### 方案自动审查（idea_generation 审批前）
-
-`idea_generation` 产出 `outputs/brief.md` 与 `outputs/story.md` 后、人工审批前，建议运行 `advertising-idea-review` 做自动创意审查：
-
-```text
-# 审查：读 brief.md + story.md → 对话中输出八维诊断报告 → 写 outputs/idea_review_feedback.md
-# 由执行环境按 .agents/skills/advertising-idea-review/SKILL.md 调用
-```
-
-审查只出意见、不放行；放行永远由人工 `approve` / `reject` 决定。`reject` 后进入修订轮：`advertising-idea-strategy` 会自动读取 `outputs/idea_review_feedback.md` 逐条修订，修订后**不自动二次审查**，除非人工明确要求。反馈文件是流程状态，不进 Artifact/Approval Registry、不参与交付校验。
-
-## 资产提示词与媒体
-
-资产提示词完成后建立哈希清单：
-
-```text
-python scripts/build_asset_prompt_manifest.py RUN_DIR
-python scripts/build_image_queue.py RUN_DIR
-python scripts/execute_image_queue.py RUN_DIR --provider codex_builtin
-python scripts/register_image_result.py RUN_DIR IMG-0001 --source-file GENERATED_FILE
-python scripts/approve_media.py RUN_DIR asset ASSET_ID --actor USER
-```
-
-资产计划保存在 `asset_manifest.json`，图片结果只写入 `asset_media_manifest.json`。
-
-## 分镜板与视频提示词
-
-```text
-python scripts/build_storyboard_packets.py RUN_DIR
-python scripts/register_media_result.py RUN_DIR --kind storyboard --id SB001 --source-file GENERATED_FILE
-python scripts/approve_media.py RUN_DIR board SB001 --actor USER --confirm-no-extra-text
-# 含广告文字时，每条文字按分镜顺序重复传入：
-python scripts/approve_media.py RUN_DIR board SB002 --actor USER --verified-text "现在下单" --confirm-no-extra-text
-python scripts/build_video_prompt_manifest.py RUN_DIR
-```
-
-关系规则：
-
-- 每个 `S###` 恰好属于一个 `SB###`。
-- 每个 `SB###` 只属于一个 `V###`，每板最多四镜。
-- 每个 `V###` 为 4–30 秒；`SB###` 只是关键帧载体，不单独承担 4 秒下限。
-- 分镜板计划与图片结果分别保存在 `storyboard_board_manifest.json` 和 `storyboard_media_manifest.json`。
-- 视频参考白名单是分镜板、人物和广告商品；场景只服务于分镜板生成。
-- 默认画幅是 `16:9`。
-- 不允许通过目录顺序或第一个 glob 结果猜测关系。
-
-自动图片 executor 可以按 PipelineSpec 跳过，但只允许 Draft 继续；Production 仍要求媒体存在且已批准。
-
-## 校验层级
-
-```text
-python scripts/validate_project.py RUN_DIR --level structure
-python scripts/validate_project.py RUN_DIR --level draft
-python scripts/validate_project.py RUN_DIR --level production
-python scripts/validate_project.py RUN_DIR --level delivery
-```
-
-| Level | 要求 |
-|---|---|
-| structure | 剧本、风格、分镜、资产和视频段结构正确 |
-| draft | 提示词及 V/SB/S Manifest 完整；允许草稿级媒体 skip |
-| production | 所有必需媒体均有有效 Artifact Revision 和哈希审批 |
-| delivery | 最终包完成，包内文件大小和 SHA-256 全部匹配 |
-
-只有 `--level delivery` 授权最终交付。`--phase all` 已弃用并故意失败。
-
-## 最终打包
-
-```text
-python scripts/package_production.py RUN_DIR --mode portable
-python scripts/validate_project.py RUN_DIR --level delivery
-```
-
-打包器只读取显式计划、媒体和视频 Manifest，并在每次运行时写入新的 `outputs/final_packages/PKG-*/`。每个 `V###` 目录采用扁平交付结构：直接放置人物参考图、物品参考图、对应分镜板图片和 `视频提示词.txt`；场景资产不复制到视频目录，镜头清单和额外子目录不生成。视频段的时长、镜头映射和质量信息记录在上级 `final_package_manifest.json` 中。
-
-## 关键输出
-
-```text
-outputs/
-├── brief.md
-├── story.md
-├── style_bible.md
-├── storyboard.json
-├── asset_manifest.json
-├── shot_asset_map.json
-├── asset_prompt_manifest.json
-├── asset_media_manifest.json
-├── video_segment_plan.json
-├── storyboard_board_inputs/
-├── storyboard_board_manifest.json
-├── storyboard_media_manifest.json
-├── video_prompts/V###.md
-├── video_prompt_manifest.json
-├── artifact_registry.json
-├── approval_registry.json
-├── versions/
-├── tasks/
-├── final_packages/PKG-*/
-│   └── videos/V###/（人物图片、物品图片、SB###.png、视频提示词.txt）
-└── final_package_manifest.json
-```
-
-## 旧 Run 迁移（已退役）
-
-V6/V7 迁移脚本（`migrate_run_v6_to_v7.py`、`migrate_run_v7_to_v8.py`）已移除。当前流水线为 V8，不再支持从 V6/V7 迁入。历史迁移说明见 git 历史。
-
-## 仓库验证
-
-```text
-python scripts/validate_pipeline_contract.py
+```powershell
+$env:PYTHONUTF8='1'
 python -m unittest discover -s tests -v
-python scripts/validate_project.py examples/minimal_run --level draft
+python -m video_flow doctor
+python scripts/validate_pipeline_contract.py
 python scripts/check_document_references.py
-python scripts/check_repository_policy.py
 ```
+
+单元测试用合成角色/产物检验执行协议；不能据此宣称创作质量优秀。实际子Agent的试用记录另存docs/development-status.md。
+
+## 强制边界
+
+本地实现属于验收级：能够拒绝越阶段、错误回执、空审查、严重缺陷和失效版本；agent ID与actor是审计标签。全盘访问权限下的Agent仍可篡改本地文件。强制身份隔离需由宿主提供独立权限与批准工具，不由文档宣称实现。
+
+原广告V8流程与约束见 [旧版说明](docs/legacy-advertising-readme.md) 和 [旧版规则](docs/legacy-advertising-rules.md)。保留其版本/媒体交付能力；修复了序列审查pass标签跳过严重问题与覆盖检查的缺口。
+
+来源仓库：https://github.com/fanke52013141-cmd/creative-ad-video ，基线commit 5b86a5d44185ac580d2d806411f7628a18ec6d7e。此工作目录保留继承Git历史，reference指向本地参考副本，没有配置发布远程。

@@ -1,0 +1,225 @@
+"""Protocol behavior: synthetic actors/outputs do not certify creative quality."""
+from pathlib import Path
+import copy
+import json
+import shutil
+import sys
+import tempfile
+import unittest
+
+from video_flow import engine
+from video_flow.contracts import FlowError
+from video_flow.storage import digest, read, write
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+from sequence_review_gate import check_sequence_review
+
+BRIEF = {'title': 'Synthetic coffee', 'goal': 'brand', 'narrative_form': 'standalone',
+         'distribution': 'vertical', 'duration_seconds': 30, 'episode_count': 1,
+         'production_mode': 'generative', 'style': 'realism', 'constraints': ['Fictional brand'], 'facts': []}
+
+
+class ProtocolTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name) / 'standard'
+        (self.root / 'config').mkdir(parents=True)
+        for name in ('workflow.yaml', 'routes.yaml'):
+            shutil.copyfile(ROOT / 'config' / name, self.root / 'config' / name)
+        # Protocol tests isolate skill contents from concurrent authoring/research.
+        names = {x['skill'] for x in engine.load_yaml(self.root / 'config/workflow.yaml')['stages']} - {'$writer'}
+        for name in names | {'script-ad', 'script-shortfilm'}:
+            path = self.root / '.agents/skills' / name / 'SKILL.md'
+            path.parent.mkdir(parents=True)
+            path.write_text('Synthetic test skill: ' + name, encoding='utf-8')
+        self.run = Path(self.temp.name) / 'run'
+        engine.initialize(self.run, copy.deepcopy(BRIEF), 'automatic', self.root)
+
+    def dispatch(self, stage, actor=None):
+        packet = engine.dispatch(self.run, stage)
+        engine.bind(self.run, packet['task_id'], actor or stage + '-agent')
+        return packet
+
+    def put(self, packet, candidate):
+        candidate['task_id'] = packet['task_id']
+        base = Path(packet['output_root'])
+        write(base / 'candidate.json', candidate)
+        state = read(self.run / 'checkpoint.json')
+        write(base / 'receipt.json', {'task_id': packet['task_id'], 'agent_id': state['tasks'][packet['task_id']]['agent_id'],
+                'skill_sha256': packet['skill_sha256'], 'input_hashes': packet['input_hashes'], 'output_sha256': digest(base / 'candidate.json')})
+
+    def story(self):
+        packet = self.dispatch('story')
+        self.put(packet, {'type': 'story', 'items': [{'id': 'SC001', 'scene_goal': 'recognition', 'action': 'A person shares coffee', 'duration_seconds': 30}]})
+        engine.submit(self.run, packet['task_id'])
+        return packet
+
+    def review(self, stage, verdict='pass'):
+        packet = self.dispatch(stage)
+        target = packet['review_target']
+        self.put(packet, {'type': 'review', 'target_sha256': packet['input_hashes'][target], 'verdict': verdict,
+            'coverage': [x['id'] for x in packet['inputs'][target]['items']], 'issues': [],
+            'criteria': [{'name': name, 'score': 3, 'evidence': 'Test fixture; not creative certification'} for name in packet['review_criteria']]})
+        engine.submit(self.run, packet['task_id'])
+        return packet
+
+    def test_order_and_minimal_context(self):
+        self.assertEqual(engine.status(self.run)['ready'], ['story'])
+        with self.assertRaises(FlowError):
+            engine.dispatch(self.run, 'style')
+        packet = self.dispatch('story')
+        self.assertEqual(set(packet['inputs']), {'brief', 'route'})
+        self.assertNotIn('history', packet)
+        self.assertEqual(packet['context_mode'], 'fresh')
+
+    def test_route_overlap_and_unsupported_types(self):
+        rules = engine.load_yaml(self.root / 'config/routes.yaml')
+        brief = copy.deepcopy(BRIEF)
+        self.assertEqual(engine.resolve_route(brief, rules)['writer'], 'script-ad')
+        brief['goal'] = 'art'
+        self.assertEqual(engine.resolve_route(brief, rules)['writer'], 'script-shortfilm')
+        for change in ({'episode_count': 6}, {'narrative_form': 'serial'}, {'narrative_form': 'documentary'}, {'style': 'unbuilt'}):
+            other = dict(brief, **change)
+            with self.assertRaises(FlowError):
+                engine.resolve_route(other, rules)
+
+    def test_cannot_complete_without_bound_task(self):
+        packet = engine.dispatch(self.run, 'story')
+        with self.assertRaisesRegex(FlowError, 'bound'):
+            engine.submit(self.run, packet['task_id'])
+        with self.assertRaises(FlowError):
+            engine.submit(self.run, 'invented-task')
+
+    def test_input_tamper_blocks_progress(self):
+        self.story()
+        write(self.run / 'inputs/brief.json', dict(BRIEF, title='tampered'))
+        with self.assertRaisesRegex(FlowError, 'hash mismatch'):
+            engine.dispatch(self.run, 'story_review')
+
+    def test_skill_snapshot_cannot_change_during_task(self):
+        packet = self.dispatch('story')
+        (self.run / 'standard/skills/script-ad/SKILL.md').write_text('changed', encoding='utf-8')
+        with self.assertRaisesRegex(FlowError, 'skill changed'):
+            engine.submit(self.run, packet['task_id'])
+
+    def test_independent_reviewer_required(self):
+        self.story()
+        task = engine.dispatch(self.run, 'story_review')
+        with self.assertRaisesRegex(FlowError, 'differ'):
+            engine.bind(self.run, task['task_id'], 'story-agent')
+
+    def test_pass_label_does_not_override_serious_issues(self):
+        self.story()
+        packet = self.dispatch('story_review')
+        self.put(packet, {'type': 'review', 'target_sha256': packet['input_hashes']['story'], 'verdict': 'pass',
+            'coverage': ['SC001'], 'issues': [{'severity': 'P0', 'location': 'SC001', 'reason': 'contradiction'}],
+            'criteria': [{'name': 'causality', 'score': 4, 'evidence': 'SC001'}]})
+        with self.assertRaisesRegex(FlowError, 'P0/P1'):
+            engine.submit(self.run, packet['task_id'])
+
+    def test_empty_review_coverage_blocks(self):
+        self.story()
+        packet = self.dispatch('story_review')
+        self.put(packet, {'type': 'review', 'target_sha256': packet['input_hashes']['story'], 'verdict': 'pass',
+            'coverage': [], 'issues': [], 'criteria': [{'name': 'causality', 'score': 4, 'evidence': 'SC001'}]})
+        with self.assertRaisesRegex(FlowError, 'cover exactly'):
+            engine.submit(self.run, packet['task_id'])
+
+    def test_approval_is_separate_from_quality(self):
+        with (self.run / 'checkpoint.json').open(encoding='utf-8') as stream:
+            state = json.load(stream)
+        state['approval_policy'] = 'key_decisions'
+        write(self.run / 'checkpoint.json', state)
+        self.story()
+        self.review('story_review')
+        self.assertEqual(engine.status(self.run)['ready'], [])
+        self.assertEqual(engine.status(self.run)['stages']['story']['status'], 'quality_passed')
+        engine.approve(self.run, 'story_review', 'synthetic-user', 'fixture approval')
+        self.assertEqual(engine.status(self.run)['ready'], ['style'])
+
+    def test_repair_feedback_and_stale_result(self):
+        old = self.story()
+        self.review('story_review', 'revise')
+        packet = self.dispatch('story')
+        self.assertIn('repair_feedback', packet)
+        with self.assertRaisesRegex(FlowError, 'stale task'):
+            engine.submit(self.run, old['task_id'])
+        self.assertEqual(engine.status(self.run)['stages']['story_review']['status'], 'pending')
+
+    def test_retry_is_bounded_and_late_result_rejected(self):
+        task = self.dispatch('story')
+        for i in range(3):
+            engine.retry(self.run, task['task_id'], 'synthetic tool failure')
+            if i < 2:
+                task = self.dispatch('story', f'worker-{i}')
+        with self.assertRaisesRegex(FlowError, 'budget'):
+            engine.dispatch(self.run, 'story')
+        with self.assertRaises(FlowError):
+            engine.submit(self.run, task['task_id'])
+
+    def test_packet_tampering_rejected(self):
+        packet = self.dispatch('story')
+        path = self.run / 'tasks' / (packet['task_id'] + '.json')
+        write(path, dict(packet, skill='wrong-skill'))
+        with self.assertRaisesRegex(FlowError, 'packet hash'):
+            engine.submit(self.run, packet['task_id'])
+
+    def test_receipt_hash_and_duplicate_submit(self):
+        packet = self.dispatch('story')
+        self.put(packet, {'type': 'story', 'items': [{'id': 'SC001', 'scene_goal': 'one', 'action': 'two', 'duration_seconds': 30}]})
+        path = Path(packet['output_root']) / 'receipt.json'
+        receipt = read(path)
+        write(path, dict(receipt, output_sha256='wrong'))
+        with self.assertRaisesRegex(FlowError, 'output hash'):
+            engine.submit(self.run, packet['task_id'])
+        write(path, receipt)
+        engine.submit(self.run, packet['task_id'])
+        with self.assertRaises(FlowError):
+            engine.submit(self.run, packet['task_id'])
+
+    def test_full_synthetic_delivery_and_invalidation(self):
+        self.story()
+        self.review('story_review')
+        candidates = {
+            'style': {'type': 'style', 'items': [{'id': 'LIGHT', 'axis': 'lighting', 'rule': 'window key light', 'story_reason': 'clarity'}]},
+            'storyboard': {'type': 'storyboard', 'items': [{'id': 'S001', 'scene_id': 'SC001', 'beat': 'share', 'action': 'share coffee', 'start_state': 'separate cups', 'end_state': 'shared table', 'duration_seconds': 30, 'axis': 'camera south', 'cut_motivation': 'scene complete', 'sound': 'room tone'}]},
+            'assets': {'type': 'assets', 'items': [{'id': 'CUP', 'kind': 'prop', 'description': 'coffee cup', 'shot_ids': ['S001'], 'continuity_rules': 'same cup'}]},
+            'edit_sound': {'type': 'edit_sound', 'items': [{'id': 'ED001', 'shot_id': 'S001', 'picture_cut': 'end', 'sound': 'room tone', 'motivation': 'leave on response'}]}}
+        for stage, candidate in candidates.items():
+            packet = self.dispatch(stage)
+            self.put(packet, candidate)
+            engine.submit(self.run, packet['task_id'])
+            self.review(stage + '_review')
+        package = engine.package(self.run)
+        manifest = read(Path(package['package']) / 'manifest.json')
+        self.assertEqual(manifest['delivery_level'], 'preproduction_text')
+        for ref in manifest['files']:
+            self.assertEqual(digest(Path(package['package']) / ref['path']), ref['sha256'])
+        engine.invalidate(self.run, 'story_review', 'new story request')
+        with self.assertRaises(FlowError):
+            engine.package(self.run)
+        self.assertEqual(engine.status(self.run)['ready'], ['story'])
+
+    def test_package_and_concurrent_dispatch_fail_closed(self):
+        with self.assertRaises(FlowError):
+            engine.package(self.run)
+        (self.run / '.flow.lock').write_text('test-process', encoding='utf-8')
+        with self.assertRaisesRegex(FlowError, 'locked'):
+            engine.dispatch(self.run, 'story')
+
+
+class LegacyReviewRegression(unittest.TestCase):
+    def test_pass_with_p0_is_rejected(self):
+        with self.assertRaises(ValueError):
+            check_sequence_review({'status': 'pass', 'checked_shots': ['S001'], 'issues': [{'severity': 'P0'}]}, {'shots': [{'shot_id': 'S001'}]})
+
+    def test_pass_with_empty_or_missing_shots_is_rejected(self):
+        for shots in ([], ['S002'], ['S001', 'S001']):
+            with self.assertRaises(ValueError):
+                check_sequence_review({'status': 'pass', 'checked_shots': shots, 'issues': []}, {'shots': [{'shot_id': 'S001'}]})
+
+
+if __name__ == '__main__':
+    unittest.main()

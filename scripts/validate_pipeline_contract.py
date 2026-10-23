@@ -60,6 +60,15 @@ def main() -> None:
         if not stage.get("outputs"):
             errors.append(f"{stage['id']} must declare at least one trackable output")
     configured_skills = set(resolved)
+    # The general protocol has its own workflow; V8 remains an independent profile.
+    workflow_path = REPO_ROOT / "config" / "workflow.yaml"
+    if workflow_path.is_file():
+        general = yaml.safe_load(workflow_path.read_text(encoding="utf-8-sig"))
+        routes = yaml.safe_load((REPO_ROOT / "config/routes.yaml").read_text(encoding="utf-8-sig"))
+        configured_skills.update(x['skill'] for x in general['stages'] if x['skill'] != '$writer')
+        configured_skills.update(x['writer'] for x in routes['rules'] if x.get('supported'))
+        roles = yaml.safe_load((REPO_ROOT / "config/skill_roles.yaml").read_text(encoding="utf-8-sig"))
+        configured_skills.update(name for names in roles.values() for name in names)
     skill_dirs = {path.parent.name for path in (REPO_ROOT / ".agents" / "skills").glob("*/SKILL.md")}
     # run-ad-pipeline: flow-orchestration skill, invoked by the operator between stages, not by a stage executor.
     # advertising-idea-review: invoked by run-ad-pipeline before idea_generation approval; never a stage executor.
