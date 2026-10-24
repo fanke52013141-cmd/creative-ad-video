@@ -13,6 +13,7 @@ edit_sound：shot_id/picture_cut/sound/motivation。
 字段类型：除 shot_ids 为非空字符串数组、duration_seconds 为正数外，其余必填字段均为非空字符串；结构化账本放附加字段，不占必填位。
 可附加 dialogue、visual_notes、风险与替代方案等专业字段。时长合计与 brief 差不超过0.5秒。资产/声画必须覆盖全部镜头标识，不允许引用未知镜头。
 
+媒体项（仅 `--media` run）：`init --media` 后新增 asset_media/board_media 扇出阶段。一次 dispatch 只取一个 item：`python -m video_flow dispatch RUN STAGE ITEM`（待办项见 status 的 items_pending）。任务包只含该项的切片内容与全局约束，`fanout` 字段给出 item、像素 size、target_file 与 provider profile。工作者产一张图到 target_file，candidate 为 `{task_id,type:"media_item",item,file,sha256,prompt}`，sha256 须为图片实际字节哈希；一任务一图，禁止合并。全部 item 完成后引擎汇总为 media 清单产物并照常走独立 review；revise 只重开被点名的 item（兄弟项结果保留），单项重生成也可用 `invalidate RUN STAGE --item ITEM`。
 review：`{task_id,type:"review",target_sha256,coverage,verdict,issues,criteria}`。
 coverage 必须无重复、精确覆盖目标 items.id。verdict 为 pass 或 revise。
 issues：`{severity:"P0|P1|P2",location,reason}`；criteria：`{name,score:0..4,evidence}`。

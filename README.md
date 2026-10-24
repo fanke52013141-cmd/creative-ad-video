@@ -23,6 +23,8 @@ python -m video_flow dispatch ../video-flow-runs/demo story
 
 然后由Codex主Agent按 [适配说明](adapters/codex.md) spawn新上下文工作者、bind真实ID、等待并submit。CLI本身不能启动聊天中的子Agent；输出task packet仅代表待执行。使用 `$run-video-flow` 可以让接入本仓库的Agent遵循该流程。
 
+`init --media` 在文本阶段后加入参考媒体扇出阶段（asset_media 逐资产、board_media 逐场板）。一次dispatch一个item，任务包只含该项切片与全局约束；工作者按 [单项媒体协议](.agents/skills/generate-media/SKILL.md) 一任务一图，全部完成后汇总为带哈希的媒体清单并独立评审；revise与invalidate均可只作用于单个item。
+
 默认剧本、风格与分镜通过独立质量检查后仍需用户批准；展示具体作品取得决定，再运行approve。启动时可明确选择 `--approval automatic`，独立质量审查仍保留。局部创作修订用invalidate；初始需求变更创建新run，避免改写锁定事实。
 
 ```powershell

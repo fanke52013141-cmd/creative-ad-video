@@ -40,6 +40,7 @@ FIELDS = {
     "storyboard": ["scene_id", "beat", "action", "start_state", "end_state", "duration_seconds", "axis", "cut_motivation", "sound"],
     "assets": ["kind", "description", "shot_ids", "continuity_rules"],
     "edit_sound": ["shot_id", "picture_cut", "sound", "motivation"],
+    "media_item": ["item", "file", "sha256", "prompt"],
 }
 
 
@@ -70,10 +71,32 @@ def artifact_check(value, kind, inputs):
         require(refs == shots, "output must cover exactly the storyboard shot ids")
 
 
+def media_item_check(value):
+    """One task, one image: a worker candidate for a single fanout media item."""
+    require(isinstance(value, dict) and value.get("type") == "media_item", "expected artifact type media_item")
+    for field in FIELDS["media_item"]:
+        require(text(value.get(field)), f"media item requires {field}")
+    require(len(value["sha256"]) == 64 and all(c in "0123456789abcdef" for c in value["sha256"]), "sha256 must be a 64-char hex digest")
+    require(not value["file"].startswith(("/", "\\")) and ".." not in value["file"], "media file must be a safe run-relative path")
+
+
+def media_check(value, expected_items):
+    """Assembled fanout artifact: exactly the queued items, each with its own image."""
+    require(isinstance(value, dict) and value.get("type") == "media", "expected artifact type media")
+    items = value.get("items")
+    require(isinstance(items, list) and items, "media items must not be empty")
+    ids = [x.get("item") for x in items]
+    require(all(text(x) for x in ids) and len(set(ids)) == len(ids), "media item ids must be nonempty and unique")
+    require(set(ids) == set(expected_items), "media must cover exactly the queued items")
+    for row in items:
+        for field in ("file", "sha256", "prompt"):
+            require(text(row.get(field)), f"{row.get('item')} missing {field}")
+
+
 def review_check(review, target, target_hash, required_criteria):
     require(review.get("type") == "review", "expected review")
     require(review.get("target_sha256") == target_hash, "review target hash mismatch")
-    expected = {x["id"] for x in target["items"]}
+    expected = {x.get("id") or x.get("item") for x in target["items"]}
     coverage = review.get("coverage")
     require(isinstance(coverage, list) and all(text(x) for x in coverage), "invalid review coverage")
     require(len(coverage) == len(set(coverage)) and set(coverage) == expected, "review must cover exactly all target items")

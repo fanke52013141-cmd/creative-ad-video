@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-10-24 - 媒体扇出层（逐项子 Agent 生成）
+
+### Added
+- [engine] 扇出阶段：`init --media` 启用 asset_media（按 assets 的 character/space 项）与 board_media（按 storyboard 场板分组）；`dispatch RUN STAGE ITEM` 单项任务包只含该项切片与全局约束（最小必要输入）；单项 submit 校验图片哈希并登记，全部完成后汇总为 media 清单产物；review revise 只重开被点名 item；`invalidate --item` 单项重生成；bind 对扇出目标校验评审员与全部作者隔离。
+- [contracts] 新增 `media_item`（item/file/sha256/prompt）与 `media` 汇总清单校验；review 覆盖集合兼容 media 清单的 item 键。
+- [skill] 新增 `generate-media`：单项图像生成协议（一任务一图、派生提示词、调用宿主 toapis 工具、候选与回执、修订轮规则），baseline。
+- [cli] `init --media`、`dispatch` 位置参数 item、`invalidate --item`；status 对扇出阶段输出 items_pending/items_done。
+- [workflow] media_profile（gpt-image-2.5-flare-vip/low/png）与四个媒体阶段（含人工门禁评审）；文本 run 默认不含媒体阶段，行为不变。
+- [tests] 新增 6 个媒体扇出测试（profile 选择、最小任务包、汇总与打包哈希、坏哈希拒绝、revise 单项重开、单项 invalidate），共 44 个。
+
+### Reason
+- 核心要求：即时生成（资产图/分镜板图）必须由全新上下文子 Agent 承担，输入最小且必要；修改也按生成单元走子 Agent，不混入主上下文。旧 V8 的单任务分发器模式迁移到新协议（任务包/bind/回执/哈希）。
+
+### Compatibility
+- 默认 `init`（无 --media）的 run 与 V1 行为完全一致；package 对含媒体 run 附加图片文件哈希并将交付等级标为 preproduction_text_and_reference_media。
+
 ## 2026-10-24 - 首次真实媒体生成
 
 ### Changed

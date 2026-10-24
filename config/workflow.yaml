@@ -1,6 +1,11 @@
 version: '0.1.0'
 delivery_level: preproduction_text
+delivery_level_media: preproduction_text_and_reference_media
 repair_limit: 2
+media_profile:
+  model: gpt-image-2.5-flare-vip
+  quality: low
+  format: png
 stages:
   - id: story
     skill: '$writer'
@@ -75,3 +80,49 @@ stages:
     depends_on: [edit_sound]
     reviews: edit_sound
     criteria: [coverage, motivation, sound_space]
+  - id: asset_media
+    media: true
+    skill: generate-media
+    role: media-artist
+    artifact_type: media
+    inputs: [brief, style, assets]
+    depends_on: [assets_review]
+    fanout:
+      source: assets
+      select_kinds: [character, space]
+      reference_flag: reference_image
+      size_by_kind:
+        character: 1024x1536
+        space: 1280x720
+      default_size: 1024x1024
+  - id: asset_media_review
+    media: true
+    skill: production-review
+    role: reviewer
+    artifact_type: review
+    inputs: [style, assets, asset_media]
+    depends_on: [asset_media]
+    reviews: asset_media
+    criteria: [coverage, prompt_fidelity, constraint_compliance]
+    human_gate: true
+  - id: board_media
+    media: true
+    skill: generate-media
+    role: media-artist
+    artifact_type: media
+    inputs: [brief, style, storyboard]
+    depends_on: [storyboard_review]
+    fanout:
+      source: storyboard
+      group_by: scene_id
+      default_size: 1280x720
+  - id: board_media_review
+    media: true
+    skill: production-review
+    role: reviewer
+    artifact_type: review
+    inputs: [brief, storyboard, board_media]
+    depends_on: [board_media]
+    reviews: board_media
+    criteria: [coverage, prompt_fidelity, constraint_compliance]
+    human_gate: true

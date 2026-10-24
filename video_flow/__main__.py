@@ -15,11 +15,13 @@ def main():
     init.add_argument('run')
     init.add_argument('--brief', required=True)
     init.add_argument('--approval', choices=['key_decisions', 'automatic'], default='key_decisions')
+    init.add_argument('--media', action='store_true', help='include reference-media fanout stages')
     for name in ('status', 'package'):
         sub.add_parser(name).add_argument('run')
     dispatch = sub.add_parser('dispatch')
     dispatch.add_argument('run')
     dispatch.add_argument('stage')
+    dispatch.add_argument('item', nargs='?', help='fanout item id (media stages)')
     bind = sub.add_parser('bind')
     bind.add_argument('run')
     bind.add_argument('task_id')
@@ -40,6 +42,7 @@ def main():
     invalid.add_argument('run')
     invalid.add_argument('stage')
     invalid.add_argument('--reason', required=True)
+    invalid.add_argument('--item', default=None, help='reopen a single fanout item instead of the whole stage')
     sub.add_parser('doctor')
     args = vars(parser.parse_args())
     command = args.pop('command')
@@ -54,7 +57,7 @@ def main():
             result = {'status': 'ok', 'stages': len(workflow['stages']), 'skills': {x: tree_digest(engine.ROOT / '.agents/skills' / x) for x in sorted(names)},
                       'subagent_execution': 'requires Codex coordinator tools; not spawned by this CLI', 'enforcement': 'acceptance'}
         elif command == 'init':
-            result = engine.initialize(args['run'], read(Path(args['brief'])), args['approval'])
+            result = engine.initialize(args['run'], read(Path(args['brief'])), args['approval'], media=args['media'])
         else:
             result = getattr(engine, command)(**args)
         print(json.dumps(result, ensure_ascii=False, indent=2))
