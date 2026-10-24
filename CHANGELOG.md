@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-10-24 - 首次真实媒体生成
+
+### Changed
+- [media] 通过宿主 toapis-image-gen skill（ToAPIs gpt-image-2.5-flare-vip，low 质量、像素尺寸）为 shortfilm-demo run 生成首批三张资产参考图（父亲/女儿/店堂），存于 run 目录 media/，提示词从已打包 assets.json 逐字派生、一任务一图。记录见 `docs/development-status.md`。
+
+### Reason
+- 媒体生成通道首次真实打通（提交→轮询→下载→机械校验），为后续把媒体阶段接入 workflow 与 manifest 体系提供实测依据。
+
+### Compatibility
+- 不改变 workflow、引擎与 schema；V1 交付等级仍为 preproduction_text；API 密钥存宿主 skill 目录，不进 git。
+
 ## 2026-10-24 - Video Flow 0.1 shortfilm 路线真实试用
 
 ### Changed

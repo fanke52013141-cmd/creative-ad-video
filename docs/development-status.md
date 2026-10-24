@@ -2,6 +2,16 @@
 
 记录框架与 Skill 的真实执行进展。合成单元测试通过不代表创作质量；本文件只记录真实子 Agent 试用的流程行为与门禁结果。
 
+## 2026-10-24 首次真实媒体生成（资产参考图，宿主 skill 通道）
+
+- 通道：宿主 `toapis-image-gen` skill → ToAPIs `gpt-image-2.5-flare-vip`（质量 low、像素尺寸直传、按 token 后付费）；密钥存于宿主 skill 目录 `api_key.txt`，不进 git、不在文档回显。冒烟测试一张（1024x1024，~$0.005）通过：提交→轮询→下载链路完整。
+- 产物：shortfilm-demo run 首批三张资产参考图，存于 run 目录 `media/asset_images/`（按仓库策略不入 git）：
+  - `ASSET-001_father_laozhou.png`（1024x1536，2.3MB）——父亲老周人物参考
+  - `ASSET-002_daughter_xiaoman.png`（1024x1536，2.1MB）——女儿小满人物参考
+  - `ASSET-005_shop_space.png`（1280x720，1.2MB）——店堂空间参考（S01 状态：小灯亮、街道全黑）
+- 提示词从 run 已打包的 assets.json 逐字派生（一任务一图，未合并资产）；机械校验通过：PNG 有效、尺寸正确、亮度分布与光设定一致（人物图 63–65% 暗部+点状高光；空间图 94% 暗部、0.7% 高光，符合「一盏小灯照案板」）。
+- 诚实边界：本批为像素级人工目检前的机械核验；尚未接入 workflow 媒体阶段与 manifest 哈希体系（V1 仍为 preproduction_text），接入需要新的 workflow 阶段、provider profile 与媒体审批设计——这是媒体生成层的下一项工作。
+
 ## 2026-10-24 第二次真实试用：shortfilm 路线（script-shortfilm 首次执行）
 
 - Run：`../video-flow-runs/shortfilm-demo`（run_id `0e2148476c574f2cb01b4de926d0e521`，仓库外），交付包 `PKG-07f22e722a914a99b8a42fb8a953497c`。
