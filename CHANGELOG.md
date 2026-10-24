@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-10-24 - Video Flow 0.1 shortfilm 路线真实试用
+
+### Changed
+- [trial] 完成第二次真实子 Agent 端到端试用（shortfilm-brief《最后一盏灯》，shortfilm/art 路线，90 秒无对白）：12 任务、12 个全新上下文子 Agent、10 阶段全部 accepted 并 package（含 style revise→修订→复审回环）。记录见 `docs/development-status.md`。
+- [status] 7 个两次执行的 Skill 升级为 `behavioral_evaluation: 2_real_trials_passed`；script-shortfilm 首次执行记 `initial_real_trial_passed`。
+- [trial-fix-verified] 首次试用的两条改进在本轮全部见效：工作者脚本复制哈希（0 次手抄拦截）、按标量类型写必填字段（0 次类型拦截）。
+
+### Reason
+- script-shortfilm 路线此前从未真实执行；两次 run 的 revise 均为 art-direction 跨轴声画次序矛盾，已登记为该技能最需加固的自检环节。
+
+### Compatibility
+- 不改变阶段结构、schema、引擎与审批动作；已完成 run 的锁定快照不受影响。
+
 ## 2026-10-24 - Video Flow 0.1 首次真实试用
 
 ### Changed

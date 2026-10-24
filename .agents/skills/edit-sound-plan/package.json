@@ -2,12 +2,12 @@
   "version": "0.1.0",
   "maturity": "baseline",
   "scope": "preproduction_text",
-  "behavioral_evaluation": "initial_real_trial_passed",
+  "behavioral_evaluation": "2_real_trials_passed",
   "last_trial": {
     "date": "2026-10-24",
-    "run": "video-flow-runs/demo (outside repo)",
-    "route": "advertising/brand, realism, 30s vertical",
+    "run": "video-flow-runs/shortfilm-demo (outside repo)",
+    "route": "shortfilm/art, standalone, realism, 90s horizontal, no dialogue",
     "outcome": "pass",
-    "notes": "8 条声画计划；评审 4/4/4"
+    "notes": "第二次 21 条；评审 4/4/4；另见同日 coffee run（video-flow-runs/demo，docs/development-status.md）"
   }
 }

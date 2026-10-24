@@ -2,6 +2,33 @@
 
 记录框架与 Skill 的真实执行进展。合成单元测试通过不代表创作质量；本文件只记录真实子 Agent 试用的流程行为与门禁结果。
 
+## 2026-10-24 第二次真实试用：shortfilm 路线（script-shortfilm 首次执行）
+
+- Run：`../video-flow-runs/shortfilm-demo`（run_id `0e2148476c574f2cb01b4de926d0e521`，仓库外），交付包 `PKG-07f22e722a914a99b8a42fb8a953497c`。
+- Brief：`examples/video_flow/shortfilm-brief.json`（《最后一盏灯》：art/standalone/realism，90 秒横屏、无对白、一景两人）。
+- 模式与协议同首次试用（automatic；dispatch → 全新上下文 spawn → bind → 回执 → submit）。12 个任务、12 个独立子 Agent、10 阶段全部 accepted 并 package。
+- 产物：《最后一盏灯》story 5 场 90.0s（包子铺双路灯，父亲摸黑干活、女儿按下主灯接手、围裙让渡）；style 修订版七轴（光账本/声账本）；storyboard 21 镜（S04 六镜选择链，接杖在拖凳之前的次序三方互锁）；assets 22 项（双路灯具为核心资产）；edit_sound 21 条（无对白无配乐，两声开关咔哒可辨）。
+
+### 修订回环（第二次触发）
+
+style 首版被判 revise（1×P1：STY-07 S04 声事件序列把凳子拖地排在接杖之前，与锁定剧本及自身光账本矛盾；2×P2）。修订版重排声事件并加防回退禁令，复审 pass（story_fit 3 / coherence 3 / executability 3，残留 2×P2）。两次 run 的 revise 都发生在 style 阶段且都是「声画次序与锁定事实矛盾」类缺陷，提示 art-direction 技能对跨轴次序一致性的自检是最值得加固的环节。
+
+### 门禁与执行情况
+
+- 本轮无回执哈希/字段类型拦截（工作者均已按协议用脚本复制哈希、按标量类型写字段——首次试用的两条改进在第二次全部见效）。
+- 遇到三次宿主 `model concurrency limit exceeded`，等待后重试 spawn 均成功；未影响产物完整性。
+- 一次 style 修订轮 spawn 在并发限制下中断留下草稿，新工作者按任务包核验后收编覆写；框架按候选最终字节验收，无影响。
+
+### Skill 执行登记
+
+script-shortfilm 首次真实执行（story 首轮 pass：constraints 4 / causality 4 / visualization 4 / duration 3 / route_fit 4）；其余 8 个已试 Skill 均完成第二次执行，第二次评分最低仍为 3。各 package.json 已更新（`2_real_trials_passed` / script-shortfilm `initial_real_trial_passed`）。
+
+### 诚实边界
+
+- 两次 run 均为 90 秒内短片/广告、realism、单空间小人物数；多场景、多人物、长时长、非写实仍未试。
+- retry/invalidate/invalidate 级联与越权篡改测试仍未演练；无任何真实媒体生成。
+- 第二次 run 的评审分数是当轮评审员的判断；仍不据此宣称创作质量优秀。
+
 ## 2026-10-24 首次真实子 Agent 端到端试用
 
 - Run：`../video-flow-runs/demo`（run_id `9255ece84f3d452590414885138db9e9`，仓库外）。

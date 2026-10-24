@@ -2,12 +2,12 @@
   "version": "0.1.0",
   "maturity": "baseline",
   "scope": "preproduction_text",
-  "behavioral_evaluation": "initial_real_trial_passed",
+  "behavioral_evaluation": "2_real_trials_passed",
   "last_trial": {
     "date": "2026-10-24",
-    "run": "video-flow-runs/demo (outside repo)",
-    "route": "advertising/brand, realism, 30s vertical",
+    "run": "video-flow-runs/shortfilm-demo (outside repo)",
+    "route": "shortfilm/art, standalone, realism, 90s horizontal, no dialogue",
     "outcome": "pass",
-    "notes": "经两次门禁拦截（回执手抄哈希、continuity_rules 类型）修复后 pass 3/4/3"
+    "notes": "第二次 22 项资产一次通过（首次的两类门禁拦截未再出现）；另见同日 coffee run（video-flow-runs/demo，docs/development-status.md）"
   }
 }
