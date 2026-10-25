@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-24 - 输入最小化审计修复
+
+### Changed
+- [engine] 资产扇出切片改为完整条目记录：invariant_features/continuity_rules 等锚点字段随任务包下发（此前只发 description，角色参考图丢失外观锚点——跨图一致性缺陷的制度性原因之一）。
+- [engine] video_prompts 按镜切片：任务包只带本镜完整记录 + edit_sound 单条 + 本镜所在板单条（此前设计会携带 edit_sound 全量约 34KB 与板图清单全量约 10KB，18 倍冗余且有跨镜串味风险）；per_shot 队列携带完整镜头字段。
+- [workflow] style 创作者包去除 route（仅 story 保留出处、story_review 保留 route_fit 判分依据）。
+- [contracts] 新增「输入最小化政策」段：切片与 input_refs 全量哈希的分工、brief 在媒体包的有意保留、修订轮只带评审。
+- [tests] 新增 route 裁剪断言、切片全字段断言、per-shot 切片断言，共 47 个。
+
+### Reason
+- 核心原则核查：每个子 Agent 的输入必须必要且最小。少给（丢锚点）压制能力，多给（兄弟镜头）污染上下文。
+
+### Compatibility
+- 任务包 inputs 语义不变（切片）；input_refs 仍为全量哈希，回执与审计不受影响。旧 run 锁定快照不受影响。
+
 ## 2026-10-24 - 引入外部专业知识包与逐镜视频提示词阶段
 
 ### Added

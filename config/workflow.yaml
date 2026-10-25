@@ -26,7 +26,7 @@ stages:
     skill: art-direction
     role: art-director
     artifact_type: style
-    inputs: [brief, route, story]
+    inputs: [brief, story]
     depends_on: [story_review]
   - id: style_review
     skill: production-review
@@ -142,6 +142,9 @@ stages:
     fanout:
       source: storyboard
       mode: per_shot
+      slice_inputs:
+        edit_sound: {by: shot_id}
+        board_media: {by: board_for_shot}
   - id: video_prompts_review
     media: true
     skill: production-review

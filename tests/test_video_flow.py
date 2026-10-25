@@ -77,6 +77,17 @@ class ProtocolTests(unittest.TestCase):
         self.assertNotIn('history', packet)
         self.assertEqual(packet['context_mode'], 'fresh')
 
+    def test_route_only_where_a_criterion_needs_it(self):
+        self.story()
+        review_packet = self.dispatch('story_review')
+        self.assertIn('route', review_packet['inputs'])  # route_fit criterion needs it
+        self.put(review_packet, {'type': 'review', 'target_sha256': review_packet['input_hashes']['story'],
+            'verdict': 'pass', 'coverage': ['SC001'], 'issues': [],
+            'criteria': [{'name': name, 'score': 3, 'evidence': 'Test fixture; not creative certification'} for name in review_packet['review_criteria']]})
+        engine.submit(self.run, review_packet['task_id'])
+        style_packet = self.dispatch('style')
+        self.assertNotIn('route', style_packet['inputs'])  # creators do not get routing duplicates
+
     def test_route_overlap_and_unsupported_types(self):
         rules = engine.load_yaml(self.root / 'config/routes.yaml')
         brief = copy.deepcopy(BRIEF)
@@ -265,7 +276,7 @@ class MediaFanoutTests(unittest.TestCase):
             'style': {'type': 'style', 'items': [{'id': 'LIGHT', 'axis': 'lighting', 'rule': 'window key light', 'story_reason': 'clarity'}]},
             'storyboard': {'type': 'storyboard', 'items': [{'id': 'S001', 'scene_id': 'SC001', 'beat': 'share', 'action': 'share coffee', 'start_state': 'separate cups', 'end_state': 'shared table', 'duration_seconds': 30, 'axis': 'camera south', 'cut_motivation': 'scene complete', 'sound': 'room tone'}]},
             'assets': {'type': 'assets', 'items': [
-                {'id': 'CHAR-1', 'kind': 'character', 'description': 'shop owner', 'shot_ids': ['S001'], 'continuity_rules': 'same person'},
+                {'id': 'CHAR-1', 'kind': 'character', 'description': 'shop owner', 'shot_ids': ['S001'], 'continuity_rules': 'same person', 'invariant_features': 'grey hair; rolled sleeves'},
                 {'id': 'SPACE-1', 'kind': 'space', 'description': 'the shop', 'shot_ids': ['S001'], 'continuity_rules': 'one room'},
                 {'id': 'CUP', 'kind': 'prop', 'description': 'coffee cup', 'shot_ids': ['S001'], 'continuity_rules': 'same cup'}]},
             'edit_sound': {'type': 'edit_sound', 'items': [{'id': 'ED001', 'shot_id': 'S001', 'picture_cut': 'end', 'sound': 'room tone', 'motivation': 'leave on response'}]}}
@@ -368,6 +379,8 @@ class MediaFanoutTests(unittest.TestCase):
         self.text_flow()
         packet = self.dispatch('asset_media', item='CHAR-1')
         self.assertEqual(packet['skill'], 'character-visual-design')
+        sliced = packet['inputs']['assets']
+        self.assertEqual(sliced['invariant_features'], 'grey hair; rolled sleeves')  # full record, anchors ride along
         board = self.dispatch('board_media', item='BOARD-SC001')
         self.assertEqual(board['skill'], 'storyboard-panel-prompts')
         space = self.dispatch('asset_media', item='SPACE-1')
@@ -385,6 +398,10 @@ class MediaFanoutTests(unittest.TestCase):
         self.assertEqual(packet['artifact_type'], 'video_prompt')
         self.assertEqual(packet['fanout']['shot_id'], 'S001')
         self.assertNotIn('target_file', packet['fanout'])
+        # minimal per-shot slices, never sibling shots
+        self.assertEqual(packet['inputs']['storyboard']['shot']['id'], 'S001')
+        self.assertEqual([x['shot_id'] for x in packet['inputs']['edit_sound']['items']], ['S001'])
+        self.assertEqual([x['item'] for x in packet['inputs']['board_media']['items']], ['BOARD-SC001'])
         self.put(packet, {'type': 'video_prompt', 'item': 'PROMPT-S001', 'shot_id': 'S001',
                           'prompt': 'synthetic shot prompt', 'camera': 'static', 'sound': 'room tone'})
         stages = engine.submit(self.run, packet['task_id'])['stages']

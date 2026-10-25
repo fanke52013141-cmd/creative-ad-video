@@ -174,15 +174,22 @@ def fanout_queue(run, state, row):
     spec = row['fanout']
     data = artifact(run, state, spec['source'])
     if spec.get('mode') == 'per_shot':
-        return [{'item': 'PROMPT-' + it['id'], 'kind': 'video_prompt', 'shot_id': it['id'], 'size': ''}
-                for it in data['items']]
+        # Full shot record rides along: the prompt worker must see its own shot's fields.
+        return [{'item': 'PROMPT-' + it['id'], 'kind': 'video_prompt', 'shot_id': it['id'],
+                 'shot': it, 'size': ''} for it in data['items']]
     if spec['source'] == 'assets':
         kinds = set(spec.get('select_kinds', []))
         flag = spec.get('reference_flag')
         chosen = [it for it in data['items'] if it.get('kind') in kinds or (flag and it.get(flag) is True)]
         sizes = spec.get('size_by_kind', {})
-        return [{'item': it['id'], 'kind': it.get('kind', ''), 'description': it['description'],
-                 'size': sizes.get(it.get('kind'), spec.get('default_size', '1024x1024'))} for it in chosen]
+        rows = []
+        for it in chosen:
+            q = {k: v for k, v in it.items() if k != 'id'}  # full record: anchors/rules ride along
+            q['item'] = it['id']
+            q['kind'] = it.get('kind', '')
+            q['size'] = sizes.get(it.get('kind'), spec.get('default_size', '1024x1024'))
+            rows.append(q)
+        return rows
     if spec['source'] == 'storyboard':
         groups = {}
         for it in data['items']:
@@ -270,10 +277,26 @@ def dispatch_item(run, state, workflow, row, item):
               'scope': ('Generate exactly one image for this item at the target file; write only candidate.json and receipt.json under output_root.'
                         if 'target_file' in fanout else
                         'Write the text artifact for this single item; write only candidate.json and receipt.json under output_root.')}
+    slice_rules = row['fanout'].get('slice_inputs') or {}
     for key in row['inputs']:
         if key == row['fanout']['source']:
             continue
-        packet['inputs'][key] = artifact(run, state, key)
+        data = artifact(run, state, key)
+        rule = slice_rules.get(key)
+        if rule and 'shot' in spec:
+            if rule['by'] == 'shot_id':
+                one = next((x for x in data.get('items', []) if x.get('shot_id') == spec['shot_id']), None)
+                require(one is not None, f"{key} has no entry for {spec['shot_id']}")
+                packet['inputs'][key] = {'type': data.get('type'), 'items': [one]}
+            elif rule['by'] == 'board_for_shot':
+                board_id = 'BOARD-' + spec['shot'].get('scene_id', '')
+                rows = [x for x in data.get('items', []) if x.get('item') == board_id]
+                require(rows, f"{key} has no entry for {board_id}")
+                packet['inputs'][key] = {'type': 'media', 'items': rows}
+            else:
+                raise FlowError('unknown slice rule: ' + rule['by'])
+        else:
+            packet['inputs'][key] = data
         packet['input_refs'][key] = state['artifacts'][key].copy()
     packet['input_refs'][row['fanout']['source']] = state['artifacts'][row['fanout']['source']].copy()
     packet['inputs'][row['fanout']['source']] = spec  # sliced single item, never the whole artifact
