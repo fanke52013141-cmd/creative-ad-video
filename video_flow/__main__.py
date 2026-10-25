@@ -16,8 +16,26 @@ def main():
     init.add_argument('--brief', required=True)
     init.add_argument('--approval', choices=['key_decisions', 'automatic'], default='key_decisions')
     init.add_argument('--media', action='store_true', help='include reference-media fanout stages')
-    for name in ('status', 'package', 'audit'):
+    init.add_argument('--production-config', default=None, help='opt in to v0.2 external production workflow')
+    for name in ('status', 'audit', 'preflight'):
         sub.add_parser(name).add_argument('run')
+    package = sub.add_parser('package')
+    package.add_argument('run')
+    package.add_argument('--format', choices=['audit', 'external-production'], default=None)
+    package.add_argument('--out', default=None)
+    check = sub.add_parser('validate')
+    check.add_argument('run')
+    check.add_argument('--scope', choices=['delivery'], default='delivery')
+    sub.add_parser('verify-package').add_argument('path')
+    imported = sub.add_parser('import-media')
+    imported.add_argument('run')
+    imported.add_argument('--reference-key', required=True)
+    imported.add_argument('--file', required=True)
+    imported.add_argument('--stage', choices=['asset_media', 'board_media'], default='asset_media')
+    raw = sub.add_parser('import-input')
+    raw.add_argument('run')
+    raw.add_argument('--kind', choices=['story'], required=True)
+    raw.add_argument('--file', required=True)
     sub.add_parser('protocol')
     dispatch = sub.add_parser('dispatch')
     dispatch.add_argument('run')
@@ -50,17 +68,26 @@ def main():
     try:
         if command == 'doctor':
             workflow = engine.load_yaml(engine.ROOT / 'config/workflow.yaml')
-            engine.graph_check(workflow)
-            names = {x['skill'] for x in workflow['stages']} - {'$writer'} | {'script-ad', 'script-shortfilm'}
+            from .production_runtime import materialize_workflow
+            legacy = materialize_workflow(workflow)
+            production = materialize_workflow(workflow, True)
+            engine.graph_check(legacy)
+            engine.graph_check(production)
+            names = {x['skill'] for x in production['stages']} - {'$writer'} | {'script-ad', 'script-shortfilm'}
+            for row in legacy['stages'] + production['stages']:
+                names.update(row.get('fanout', {}).get('skill_by_kind', {}).values())
             missing = [x for x in sorted(names) if not (engine.ROOT / '.agents/skills' / x / 'SKILL.md').is_file()]
             if missing:
                 raise FlowError('missing skills: ' + ', '.join(missing))
-            result = {'status': 'ok', 'stages': len(workflow['stages']), 'skills': {x: tree_digest(engine.ROOT / '.agents/skills' / x) for x in sorted(names)},
+            result = {'status': 'ok', 'stages': len(legacy['stages']), 'production_stages': len(production['stages']), 'skills': {x: tree_digest(engine.ROOT / '.agents/skills' / x) for x in sorted(names)},
                       'subagent_execution': 'requires Codex coordinator tools; not spawned by this CLI', 'enforcement': 'acceptance'}
         elif command == 'init':
-            result = engine.initialize(args['run'], read(Path(args['brief'])), args['approval'], media=args['media'])
+            result = engine.initialize(args['run'], read(Path(args['brief'])), args['approval'], media=args['media'], production_config=args['production_config'])
         else:
-            result = getattr(engine, command)(**args)
+            result = getattr(engine, command.replace('-', '_'))(**args)
+        if result.get('status') in ('blocked', 'violations') or result.get('passed') is False:
+            print(json.dumps(result, ensure_ascii=False, indent=2), file=sys.stderr)
+            raise SystemExit(1)
         print(json.dumps(result, ensure_ascii=False, indent=2))
     except (FlowError, OSError, ValueError, KeyError, TypeError) as exc:
         print(json.dumps({'status': 'blocked', 'reason': str(exc)}, ensure_ascii=False), file=sys.stderr)

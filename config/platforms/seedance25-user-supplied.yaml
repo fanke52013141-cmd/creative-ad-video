@@ -1,0 +1,12 @@
+schema_version: '0.2.0'
+profile_id: seedance25-user-supplied
+status: user_supplied
+source: 'User supplied Seedance 2.5 handbook; actual account and UI mode require confirmation before platform execution.'
+verified_at: null
+modes:
+  reference:
+    min_duration_ms: 4000
+    max_duration_ms: 30000
+    max_images: 30
+    supports_multi_shot: true
+    supports_audio: true

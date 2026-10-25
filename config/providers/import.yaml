@@ -1,0 +1,7 @@
+schema_version: '0.2.0'
+profile_id: local-import
+status: verified
+supports_reference_images: true
+formats: [png]
+credential_env: null
+test_only: false

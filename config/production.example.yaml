@@ -1,0 +1,17 @@
+schema_version: '0.2.0'
+profile_id: external-import-draft
+media_mode: import
+selected_mode: reference
+platform_profile: platforms/seedance25-user-supplied.yaml
+provider_profile: providers/import.yaml
+board_max_panels: 4
+target_segment_duration_ms: 6000
+max_concurrent_media: 1
+repair_limit: 2
+delivery:
+  text_encoding: utf-8-sig
+  directory_name: '{title}_制作包_r{revision:03d}'
+budget:
+  paid_generation_authorized: false
+  max_total_cost: null
+  currency: USD

@@ -1,0 +1,12 @@
+{
+  "title": "合成验收样例F01",
+  "goal": "art",
+  "narrative_form": "standalone",
+  "distribution": "horizontal",
+  "duration_seconds": 24,
+  "episode_count": 1,
+  "production_mode": "generative",
+  "style": "realism",
+  "constraints": ["合成测试专用；两个场景、两个人物、两个独立物品", "不调用付费服务，不生成视频；合成图片不证明视觉质量"],
+  "facts": []
+}

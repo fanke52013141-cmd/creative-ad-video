@@ -96,11 +96,20 @@ def graph_check(workflow):
     require(generators == set(targets) and len(targets) == len(set(targets)), 'each generator needs exactly one review')
 
 
-def initialize(run, brief, approval='key_decisions', root=ROOT, media=False):
+def initialize(run, brief, approval='key_decisions', root=ROOT, media=False, production_config=None):
     run, root = Path(run).resolve(), Path(root).resolve()
     require(approval in {'key_decisions', 'automatic'}, 'unknown approval policy')
     workflow = load_yaml(root / 'config/workflow.yaml')
-    if media:
+    from .production_runtime import materialize_workflow
+    production = None
+    if production_config is not None:
+        from .profiles import load_production_bundle
+        require(media, 'production config requires --media')
+        production = load_production_bundle(production_config)
+    workflow = materialize_workflow(workflow, production is not None)
+    if production:
+        workflow['repair_limit'] = production['production']['repair_limit']
+    elif media:
         workflow = dict(workflow, delivery_level=workflow.get('delivery_level_media', 'preproduction_text_and_reference_media'))
     else:
         workflow = dict(workflow, stages=[row for row in workflow['stages'] if not row.get('media')])
@@ -127,9 +136,11 @@ def initialize(run, brief, approval='key_decisions', root=ROOT, media=False):
         write(tmp / 'standard/workflow.json', workflow)
         write(tmp / 'standard/routes.json', routes)
         write(tmp / 'standard/skills.lock.json', lock)
+        if production:
+            write(tmp / 'standard/production.json', production)
         write(tmp / 'inputs/brief.json', brief)
         write(tmp / 'inputs/route.json', route)
-        state = {'version': '0.1.0', 'run_id': uuid.uuid4().hex, 'sequence': 0,
+        state = {'version': '0.2.0' if production else '0.1.0', 'run_id': uuid.uuid4().hex, 'sequence': 0,
                  'approval_policy': approval, 'delivery_level': workflow['delivery_level'],
                  'standard_hashes': {name: digest(tmp / 'standard' / name) for name in
                                      ('workflow.json', 'routes.json', 'skills.lock.json')},
@@ -137,6 +148,8 @@ def initialize(run, brief, approval='key_decisions', root=ROOT, media=False):
                                for key in ('brief', 'route')},
                  'stages': {row['id']: {'status': 'pending', 'attempts': 0, 'task_id': None} for row in workflow['stages']},
                  'tasks': {}, 'history': [], 'events': []}
+        if production:
+            state['standard_hashes']['production.json'] = digest(tmp / 'standard/production.json')
         write(tmp / 'checkpoint.json', state)
         tmp.rename(run)
     except BaseException:
@@ -165,6 +178,9 @@ def integrity(run, state):
     for name in state['artifacts']:
         artifact(run, state, name)
     verify_events(state)
+    if state.get('story_source'):
+        ref = state['story_source']
+        require(digest(inside(run, ref['path'], True)) == ref['sha256'], 'imported story source changed')
 
 
 def task_roles(run, state):
@@ -214,6 +230,10 @@ def status(run):
 def fanout_queue(run, state, row):
     """Item queue for a fanout stage, derived from its locked source artifact."""
     spec = row['fanout']
+    if state.get('version') == '0.2.0':
+        from .production_runtime import queue, bundle
+        data = {name: artifact(run, state, name) for name in row['inputs']}
+        return queue(row, data, bundle(run, state))
     data = artifact(run, state, spec['source'])
     if spec.get('mode') == 'per_shot':
         # Full shot record rides along: the prompt worker must see its own shot's fields.
@@ -242,7 +262,7 @@ def fanout_queue(run, state, row):
     raise FlowError('unsupported fanout source: ' + str(spec['source']))
 
 
-def dispatch(run, stage, item=None):
+def dispatch(run, stage, item=None, executor_type='agent'):
     run = Path(run)
     with transaction(run) as state:
         integrity(run, state)
@@ -250,8 +270,10 @@ def dispatch(run, stage, item=None):
         rows = {x['id']: x for x in ready_rows(workflow, state)}
         require(stage in rows, f'stage not ready: {stage}')
         row = rows[stage]
+        require(executor_type in ('agent', 'import'), 'unknown executor type')
+        require(executor_type == 'agent' or (state.get('version') == '0.2.0' and row.get('fanout') and row.get('item_artifact', 'media_item') == 'media_item'), 'import executor requires v0.2 media item')
         if row.get('fanout'):
-            return dispatch_item(run, state, workflow, row, item)
+            return dispatch_item(run, state, workflow, row, item, executor_type)
         require(state['stages'][stage]['attempts'] <= workflow['repair_limit'], 'repair budget exhausted')
         route = artifact(run, state, 'route')
         skill = route['writer'] if row['skill'] == '$writer' else row['skill']
@@ -267,6 +289,10 @@ def dispatch(run, stage, item=None):
         for key in row['inputs']:
             packet['inputs'][key] = artifact(run, state, key)
             packet['input_refs'][key] = state['artifacts'][key].copy()
+        if stage == 'story' and state.get('story_source'):
+            ref = state['story_source'].copy()
+            packet['inputs']['story_source'] = {'text': inside(run, ref['path'], True).read_text(encoding='utf-8'), **ref}
+            packet['input_refs']['story_source'] = ref
         # Revision repair receives only the previous review, never unrelated history.
         if not row.get('reviews'):
             feedback = state['stages'][stage].get('feedback')
@@ -275,6 +301,9 @@ def dispatch(run, stage, item=None):
                 require(digest(path) == feedback['sha256'], 'feedback hash mismatch')
                 packet['repair_feedback'] = read(path)
         packet['input_hashes'] = {k: v['sha256'] for k, v in packet['input_refs'].items()}
+        if state.get('version') == '0.2.0':
+            from .production_runtime import enrich_packet
+            enrich_packet(packet, run, state)
         path = run / 'tasks' / (task_id + '.json')
         write(path, packet)
         (run / 'work' / task_id).mkdir(parents=True)
@@ -285,7 +314,7 @@ def dispatch(run, stage, item=None):
         return packet
 
 
-def dispatch_item(run, state, workflow, row, item):
+def dispatch_item(run, state, workflow, row, item, executor_type='agent'):
     """One fanout item = one bounded task packet with only that item's content."""
     require(text(item), 'fanout stage requires an item id (see status items_pending)')
     entry = state['stages'][row['id']]
@@ -309,6 +338,8 @@ def dispatch_item(run, state, workflow, row, item):
     if row.get('item_artifact', 'media_item') == 'media_item':
         fanout.update({'size': spec['size'], 'target_file': f"media/{row['id']}/{item}.png",
                        'profile': workflow.get('media_profile', {})})
+    elif state.get('version') == '0.2.0':
+        fanout['video_id'] = spec['video_id']
     else:
         fanout['shot_id'] = spec['shot_id']
     packet = {'task_id': task_id, 'stage': row['id'], 'role': row['role'], 'skill': skill,
@@ -342,6 +373,26 @@ def dispatch_item(run, state, workflow, row, item):
         packet['input_refs'][key] = state['artifacts'][key].copy()
     packet['input_refs'][row['fanout']['source']] = state['artifacts'][row['fanout']['source']].copy()
     packet['inputs'][row['fanout']['source']] = spec  # sliced single item, never the whole artifact
+    if state.get('version') == '0.2.0':
+        from .production_runtime import bundle, enrich_packet, slice_packet
+        from .registry import canonical_filename, safe_name
+        config = bundle(run, state)
+        if row.get('item_artifact', 'media_item') == 'media_item' and executor_type == 'agent':
+            require(config['production']['media_mode'] == 'mock', 'media requires import-media; automatic image provider is not registered')
+        artifacts = {key: artifact(run, state, key) for key in row['inputs']}
+        packet['inputs'], references = slice_packet(row, spec, artifacts, run, config)
+        packet['fanout'].update(spec=spec, references=references, revision=cell['attempts']+1)
+        packet['executor_type'] = executor_type
+        packet['fanout']['profile'] = config['provider']
+        packet['scope'] = ('Import exactly one supplied image; retain independent visual review.' if executor_type == 'import' else
+                           'Execute only the locked mock media fixture; never invoke a paid provider.' if 'target_file' in fanout else
+                           'Write the reference-bound video prompt for this segment; no video generation.')
+        if 'target_file' in fanout:
+            revision = cell['attempts']+1
+            filename = (safe_name(item) + f'_r{revision:03d}.png' if spec['kind'] == 'board' else
+                        canonical_filename(spec['asset']['id'], spec['asset']['display_name'], spec['state_id'], spec['view'], revision))
+            packet['fanout']['target_file'] = f"media/{row['id']}/{task_id}/{filename}"
+        enrich_packet(packet, run, state)
     feedback = entry.get('feedback')
     if feedback and cell['attempts'] > 0:
         path = inside(run, feedback['path'], True)
@@ -380,6 +431,10 @@ def bind(run, task_id, agent_id):
     with transaction(run) as state:
         integrity(run, state)
         entry, task = task_load(run, state, task_id)
+        if task.get('executor_type') == 'import':
+            require(agent_id == 'import:' + task_id, 'import task must bind its actual deterministic operation identity')
+        else:
+            require(not agent_id.startswith('import:'), 'import identity is reserved for import operations')
         require(entry['status'] == 'dispatched' and entry['agent_id'] is None, 'task already bound or closed')
         # Run-wide role isolation: no agent may review anything it (or its id) authored.
         authors, reviewers = task_roles(run, state)
@@ -442,14 +497,7 @@ def invalidate_item(run, stage, item, reason):
         if stage in state['artifacts']:
             state['history'].append({'stage': stage, **state['artifacts'].pop(stage)})
         entry['status'] = 'in_progress'
-        for key in descendants(workflow, stage) - {stage}:
-            review_row = state['stages'][key]
-            if review_row.get('task_id'):
-                state['tasks'][review_row['task_id']]['status'] = 'stale'
-            if key in state['artifacts']:
-                state['history'].append({'stage': key, **state['artifacts'].pop(key)})
-            review_row.update(status='pending', task_id=None)
-            review_row.pop('approval', None)
+        invalidate_downstream(run, state, workflow, stage, {item})
         event(state, 'invalidate_item', stage=stage, item=item, reason=reason)
     return status(run)
 
@@ -478,7 +526,8 @@ def submit(run, task_id):
         lock = read(run / 'standard/skills.lock.json')
         require(tree_digest(run / 'standard/skills' / task['skill']) == lock[task['skill']], 'skill changed after dispatch')
         for key, ref in task['input_refs'].items():
-            require(state['artifacts'].get(key) == ref, 'input revision changed')
+            current = state.get('story_source') if key == 'story_source' else state['artifacts'].get(key)
+            require(current == ref, 'input revision changed')
         base = run / 'work' / task_id
         path = inside(base, 'candidate.json', True)
         receipt_path = inside(base, 'receipt.json', True)
@@ -490,9 +539,21 @@ def submit(run, task_id):
         require(receipt.get('input_hashes') == task['input_hashes'], 'receipt inputs mismatch')
         require(receipt.get('output_sha256') == digest(path), 'receipt output hash mismatch')
         row = next(x for x in workflow['stages'] if x['id'] == task['stage'])
+        normalized_item = None
         if row.get('reviews'):
             target = row['reviews']
             review_check(candidate, task['inputs'][target], task['input_hashes'][target], row['criteria'])
+            if state.get('version') == '0.2.0':
+                for issue in candidate['issues']:
+                    if 'target_ids' in issue:
+                        require(isinstance(issue['target_ids'], list) and all(text(x) for x in issue['target_ids']), 'target_ids must be a string array')
+        elif state.get('version') == '0.2.0':
+            from .production_runtime import accept_item, check_artifact, bundle
+            require(candidate.get('schema_version') == '0.2.0', 'candidate schema_version must be 0.2.0')
+            if row.get('fanout'):
+                normalized_item = accept_item(candidate, task, run)
+            else:
+                check_artifact(candidate, row['artifact_type'], task['inputs'], bundle(run, state))
         elif row.get('fanout') and row.get('item_artifact', 'media_item') == 'media_item':
             media_item_check(candidate)
             require(candidate['item'] == task['fanout']['item'], 'candidate item mismatch')
@@ -516,7 +577,9 @@ def submit(run, task_id):
             stage_entry = state['stages'][row['id']]
             item = task['fanout']['item']
             stage_entry['item_states'][item].update(status='done')
-            if row.get('item_artifact', 'media_item') == 'media_item':
+            if normalized_item is not None:
+                stage_entry['results'][item] = normalized_item
+            elif row.get('item_artifact', 'media_item') == 'media_item':
                 stage_entry['results'][item] = {'item': item, 'kind': task['fanout']['kind'],
                                                 'file': candidate['file'], 'sha256': candidate['sha256'],
                                                 'prompt': candidate['prompt'], 'size': task['fanout']['size'],
@@ -549,7 +612,7 @@ def submit(run, task_id):
             if candidate['verdict'] == 'revise':
                 target_row = next(x for x in workflow['stages'] if x['id'] == target)
                 if target_row.get('fanout'):
-                    media_revise(state, workflow, target, ref, candidate)
+                    media_revise(state, workflow, target, ref, candidate, run)
                 else:
                     invalidate_state(state, workflow, target, 'independent review requested revision')
                     state['stages'][target]['feedback'] = ref
@@ -561,12 +624,16 @@ def submit(run, task_id):
     return status(run)
 
 
-def media_revise(state, workflow, target, review_ref, review):
+def media_revise(state, workflow, target, review_ref, review, run=None):
     """A revise on a fanout media artifact reopens only the items the review cites."""
     entry = state['stages'][target]
     require('item_states' in entry, 'media stage lost its item queue')
-    cited = {item for item in entry['item_states']
-             if any(item in str(issue.get('location', '')) for issue in review.get('issues', []))}
+    if state.get('version') == '0.2.0':
+        cited = {item for issue in review.get('issues', []) for item in issue.get('target_ids', [])}
+        require(cited <= set(entry['item_states']), 'review cites unknown target_ids')
+    else:
+        cited = {item for item in entry['item_states']
+                 if any(item in str(issue.get('location', '')) for issue in review.get('issues', []))}
     reset = cited or set(entry['item_states'])
     for item in reset:
         cell = entry['item_states'][item]
@@ -578,14 +645,19 @@ def media_revise(state, workflow, target, review_ref, review):
         state['history'].append({'stage': target, **state['artifacts'].pop(target)})
     entry['status'] = 'in_progress'
     entry['feedback'] = review_ref
-    for key in descendants(workflow, target) - {target}:
-        review_row = state['stages'][key]
-        if review_row.get('task_id'):
-            state['tasks'][review_row['task_id']]['status'] = 'stale'
-        if key in state['artifacts']:
-            state['history'].append({'stage': key, **state['artifacts'].pop(key)})
-        review_row.update(status='pending', task_id=None)
-        review_row.pop('approval', None)
+    invalidate_downstream(run, state, workflow, target, reset)
+
+
+def invalidate_downstream(run, state, workflow, origin, changed_keys):
+    from .dependency_index import reset_stage, invalidate_dependents
+    keys = descendants(workflow, origin) - {origin}
+    if state.get('version') == '0.2.0' and run is not None:
+        def reader(task_id):
+            return read(inside(run, state['tasks'][task_id]['path'], True))
+        return invalidate_dependents(state, workflow, origin, changed_keys, reader, keys)
+    for key in keys:
+        reset_stage(state, key)
+    return {key: 'all' for key in keys}
 
 
 def approve(run, stage, actor, reason):
@@ -622,7 +694,7 @@ def retry(run, task_id, reason):
     return status(run)
 
 
-def package(run):
+def package(run, format=None, out=None):
     run = Path(run)
     with transaction(run) as state:
         integrity(run, state)
@@ -632,6 +704,22 @@ def package(run):
                 continue
             task_load(run, state, task_id)
             require(entry.get('receipt_path') and digest(inside(run, entry['receipt_path'], True)) == entry['receipt_sha256'], 'receipt integrity mismatch')
+        if format == 'external-production' or (format is None and state.get('version') == '0.2.0'):
+            require(state.get('version') == '0.2.0', 'external production export requires a v0.2 run')
+            from .delivery import export_production_package
+            from .production_runtime import bundle
+            report = audit(run)
+            require(report['status'] == 'clean', 'run audit failed: ' + '; '.join(report['violations']))
+            artifacts = {name: artifact(run, state, name) for name in state['artifacts']}
+            if out is None:
+                (run / 'deliveries').mkdir(exist_ok=True)
+                out = run / 'deliveries' / ('PKG-' + uuid.uuid4().hex)
+            result = export_production_package(run, artifacts, out, bundle(run, state))
+            manifest_path = Path(result['package']) / '_校验/manifest.json'
+            event(state, 'package', package_id=Path(result['package']).name, manifest_sha256=digest(manifest_path))
+            return result
+        require(format in (None, 'audit'), 'unknown package format')
+        require(out is None, '--out applies only to external-production packages')
         pkg_id = 'PKG-' + uuid.uuid4().hex
         base = run / 'packages' / pkg_id
         files = []
@@ -663,6 +751,48 @@ def package(run):
         write(base / 'manifest.json', manifest)
         event(state, 'package', package_id=pkg_id, manifest_sha256=digest(base / 'manifest.json'))
     return {'package': str(base.resolve()), 'manifest': manifest}
+
+
+def preflight(run):
+    state = read(Path(run) / 'checkpoint.json')
+    integrity(run, state)
+    require(state.get('version') == '0.2.0', 'preflight requires v0.2 production configuration')
+    from .production_runtime import bundle
+    config = bundle(run, state)
+    issues = []
+    if config['production']['media_mode'] == 'generate':
+        issues.append('No automatic image provider adapter is registered; use import mode or configure a host adapter.')
+    if not config['provider']['supports_reference_images']:
+        issues.append('Image workflow requires a provider/import route with reference-image support.')
+    return {'status': 'blocked' if issues else 'ready', 'issues': issues,
+            'media_mode': config['production']['media_mode'], 'platform_profile_status': config['platform']['status'],
+            'platform_binding': 'pending', 'external_video_result': 'unverified',
+            'generation_invoked': False}
+
+
+def validate(run, scope='delivery'):
+    require(scope == 'delivery', 'unknown validation scope')
+    state = read(Path(run) / 'checkpoint.json')
+    integrity(run, state)
+    require(all(row['status'] == 'accepted' for row in state['stages'].values()), 'all stages must be accepted before delivery')
+    result = audit(run)
+    require(result['status'] == 'clean', 'run audit failed: ' + '; '.join(result['violations']))
+    return {'status': 'ready_for_export', 'scope': scope, 'audit': result}
+
+
+def verify_package(path):
+    from .delivery_validation import verify_package as verify
+    return verify(path)
+
+
+def import_media(run, reference_key, file, stage='asset_media'):
+    from .imports import import_media as execute
+    return execute(run, reference_key, file, stage)
+
+
+def import_input(run, kind, file):
+    from .imports import import_input as execute
+    return execute(run, kind, file)
 
 
 def bindable_prompt(packet):
@@ -766,13 +896,25 @@ def audit(run):
                 require(ref is not None, 'missing review target artifact')
                 review_check(candidate, read(inside(run, ref['path'], True)), task['input_hashes'][target_name], row['criteria'])
             elif row.get('fanout') and row.get('item_artifact', 'media_item') == 'media_item':
-                media_item_check(candidate)
-                require(candidate['file'] == task['fanout']['target_file'], 'candidate file mismatch')
-                require(digest(inside(run, candidate['file'], True)) == candidate['sha256'], 'media hash mismatch')
+                if state.get('version') == '0.2.0':
+                    from .production_runtime import accept_item
+                    accept_item(candidate, task, run)
+                else:
+                    media_item_check(candidate)
+                    require(candidate['file'] == task['fanout']['target_file'], 'candidate file mismatch')
+                    require(digest(inside(run, candidate['file'], True)) == candidate['sha256'], 'media hash mismatch')
             elif row.get('fanout'):
-                video_prompt_check(candidate)
+                if state.get('version') == '0.2.0':
+                    from .production_runtime import accept_item
+                    accept_item(candidate, task, run)
+                else:
+                    video_prompt_check(candidate)
             else:
-                artifact_check(candidate, row['artifact_type'], task['inputs'])
+                if state.get('version') == '0.2.0':
+                    from .production_runtime import check_artifact, bundle
+                    check_artifact(candidate, row['artifact_type'], task['inputs'], bundle(run, state))
+                else:
+                    artifact_check(candidate, row['artifact_type'], task['inputs'])
         except FlowError as exc:
             flow_violation(f'task {task_id} ({role}): {exc}')
         except (OSError, KeyError, TypeError) as exc:

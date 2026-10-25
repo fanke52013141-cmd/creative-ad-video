@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "profile_id", "media_mode", "selected_mode", "platform_profile", "provider_profile", "board_max_panels", "max_concurrent_media", "repair_limit", "delivery", "budget"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": "0.2.0"},
+    "profile_id": {"type": "string", "minLength": 1},
+    "media_mode": {"enum": ["import", "generate", "mock"]},
+    "selected_mode": {"type": "string", "minLength": 1},
+    "target_segment_duration_ms": {"type": "integer", "minimum": 1},
+    "platform_profile": {"type": "string", "minLength": 1},
+    "provider_profile": {"type": "string", "minLength": 1},
+    "board_max_panels": {"type": "integer", "minimum": 1, "maximum": 4},
+    "max_concurrent_media": {"type": "integer", "minimum": 1},
+    "repair_limit": {"type": "integer", "minimum": 0},
+    "delivery": {
+      "type": "object", "required": ["text_encoding", "directory_name"], "additionalProperties": false,
+      "properties": {"text_encoding": {"enum": ["utf-8", "utf-8-sig"]}, "directory_name": {"type": "string", "minLength": 1}}
+    },
+    "budget": {
+      "type": "object", "required": ["paid_generation_authorized", "max_total_cost", "currency"], "additionalProperties": false,
+      "properties": {"paid_generation_authorized": {"type": "boolean"}, "max_total_cost": {"type": ["number", "null"], "minimum": 0}, "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}}
+    }
+  }
+}

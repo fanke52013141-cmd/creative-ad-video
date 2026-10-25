@@ -67,6 +67,8 @@ def main() -> None:
         routes = yaml.safe_load((REPO_ROOT / "config/routes.yaml").read_text(encoding="utf-8-sig"))
         configured_skills.update(x['skill'] for x in general['stages'] if x['skill'] != '$writer')
         configured_skills.update(v for x in general['stages'] for v in (x.get('fanout') or {}).get('skill_by_kind', {}).values())
+        configured_skills.update(v for x in general['stages'] for v in
+                                 (x.get('production', {}).get('fanout') or {}).get('skill_by_kind', {}).values())
         configured_skills.update(x['writer'] for x in routes['rules'] if x.get('supported'))
         roles = yaml.safe_load((REPO_ROOT / "config/skill_roles.yaml").read_text(encoding="utf-8-sig"))
         configured_skills.update(name for names in roles.values() for name in names)

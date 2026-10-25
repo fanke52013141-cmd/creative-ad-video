@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-10-25 - Video Flow 0.2 制作层（生产计划、V 片段提示词、平台配置、交付校验）
+
+### Added
+- [contracts] 0.2 制作契约（`docs/contracts-v02.md`，正式 Schema 在 `video_flow/schemas/v02/`）：经 `init --production-config` 显式启用（必须同时 --media），未启用时维持 0.1 契约，旧 run 不原地升级；候选须带 `schema_version: 0.2.0`，story/storyboard 改用整数 `duration_ms`（brief 保留秒、精确换算核对，禁止双时间源）。
+- [engine] 新模块：`production_plan`（segments/boards 计划，items 为 segments 逐项镜像）、`prompts`（`{{ref:reference_key}}` 素材绑定渲染）、`media`、`profiles`/`registry`（provider 与平台配置，`config/providers/`、`config/platforms/`，`user_supplied` 标注未经实际账号核实的平台参数）、`delivery`/`delivery_validation`（交付与 `verify-package` 包校验）、`imports`（`import-media`/`import-input`）、`dependency_index`、`production_runtime`。
+- [workflow] 新增 production_plan / production_plan_review 阶段（`production_only`，随生产配置启用）；asset_media 扇出扩展 prop 类别（新技能 prop-visual-design）与 production.media_requirements 联动。
+- [media] 图片按 reference_key 身份/状态/视图派发，返修递增 revision、不覆盖已接受旧图；候选须为可解码 PNG 且尺寸/哈希合任务，视觉一致性仍以独立看图评审为准。
+- [video] 视频提示词从逐镜改为逐 V 片段：任务包携带 segment 计划与 references 绑定，timeline 逐项复制计划时间，素材引用一律 `{{ref:...}}`，平台语法由程序渲染，不手写 @ 序号。
+- [cli] `validate`、`verify-package`、`import-media`、`import-input`；`package` 接入交付校验。
+- [skills] 新增 production-plan 与 prop-visual-design（draft）；production-review、video-shot-prompts、基础规范/生产方法同步 v0.2 语义。
+- [tests] 新增 6 个 v0.2 测试文件（契约、流水线、production_plan、prompts、交付、故障恢复），全套 113 个测试。
+- [deps] requirements 增加 Pillow==10.4.0（PNG 解码校验）。
+
+### Reason
+- 0.1 交付止于逐镜文本与参考图；0.2 把「图片资产状态化 → 生产计划（V 片段/多格板）→ 素材绑定提示词 → 交付校验」接成可执行链路，为接入真实图片/视频平台做准备。
+
+### Compatibility
+- 0.1 契约与旧 run 完全兼容（不启用 --production-config 即不加载 0.2 层）；`user_supplied` 平台参数与 `test_only` 标签不得当作已核实账号能力；合成端到端测试不代替真实创作质量。
+
 ## 2026-10-25 - 吸收「广告创意总监」进 script-ad
 
 ### Changed

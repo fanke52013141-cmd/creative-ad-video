@@ -98,6 +98,14 @@ stages:
       skill_by_kind:
         character: character-visual-design
         space: scene-visual-design
+    production:
+      fanout:
+        source: assets
+        mode: media_requirements
+        select_kinds: [character, space, prop]
+        size_by_kind: {character: 1024x1536, space: 1280x720, prop: 1024x1024}
+        default_size: 1024x1024
+        skill_by_kind: {character: character-visual-design, space: scene-visual-design, prop: prop-visual-design}
   - id: asset_media_review
     media: true
     skill: production-review
@@ -108,6 +116,24 @@ stages:
     reviews: asset_media
     criteria: [coverage, prompt_fidelity, constraint_compliance]
     human_gate: true
+  - id: production_plan
+    production_only: true
+    media: true
+    skill: production-plan
+    role: production-planner
+    artifact_type: production_plan
+    inputs: [brief, style, storyboard, assets, edit_sound]
+    depends_on: [assets_review, edit_sound_review]
+  - id: production_plan_review
+    production_only: true
+    media: true
+    skill: production-review
+    role: reviewer
+    artifact_type: review
+    inputs: [brief, storyboard, assets, edit_sound, production_plan]
+    depends_on: [production_plan]
+    reviews: production_plan
+    criteria: [coverage, timing, board_layout, reference_roles]
   - id: board_media
     media: true
     skill: generate-media
@@ -121,6 +147,14 @@ stages:
       default_size: 1280x720
       skill_by_kind:
         board: storyboard-panel-prompts
+    production:
+      inputs: [brief, style, storyboard, assets, asset_media, production_plan]
+      depends_on: [production_plan_review, asset_media_review]
+      fanout:
+        source: production_plan
+        mode: per_board
+        default_size: 1280x720
+        skill_by_kind: {board: storyboard-panel-prompts}
   - id: board_media_review
     media: true
     skill: production-review
@@ -131,6 +165,8 @@ stages:
     reviews: board_media
     criteria: [coverage, prompt_fidelity, constraint_compliance]
     human_gate: true
+    production:
+      inputs: [brief, storyboard, assets, asset_media, production_plan, board_media]
   - id: video_prompts
     media: true
     skill: video-shot-prompts
@@ -145,6 +181,12 @@ stages:
       slice_inputs:
         edit_sound: {by: shot_id}
         board_media: {by: board_for_shot}
+    production:
+      inputs: [brief, style, storyboard, assets, asset_media, board_media, edit_sound, production_plan]
+      depends_on: [board_media_review, asset_media_review, production_plan_review, edit_sound_review]
+      fanout:
+        source: production_plan
+        mode: per_segment
   - id: video_prompts_review
     media: true
     skill: production-review
@@ -155,3 +197,5 @@ stages:
     reviews: video_prompts
     criteria: [coverage, shot_fidelity, camera_sound_binding]
     human_gate: true
+    production:
+      inputs: [brief, storyboard, assets, asset_media, board_media, edit_sound, production_plan, video_prompts]

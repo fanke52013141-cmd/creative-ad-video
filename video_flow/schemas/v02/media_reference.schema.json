@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object", "required": ["reference_key", "media_id", "revision", "canonical_name", "file", "sha256", "width", "height", "format", "source", "review_ref"],
+  "properties": {
+    "reference_key": {"type": "string", "minLength": 1}, "media_id": {"type": "string", "minLength": 1},
+    "revision": {"type": "integer", "minimum": 1}, "canonical_name": {"type": "string", "minLength": 1},
+    "file": {"type": "string", "minLength": 1}, "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "width": {"type": "integer", "minimum": 1}, "height": {"type": "integer", "minimum": 1},
+    "format": {"enum": ["png", "jpeg", "webp"]}, "source": {"enum": ["generated", "imported", "mock"]},
+    "review_ref": {"type": "object", "required": ["path", "sha256"], "properties": {"path": {"type": "string", "minLength": 1}, "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}}
+  }
+}
