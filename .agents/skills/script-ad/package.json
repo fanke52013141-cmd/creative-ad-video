@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.2.0",
   "maturity": "baseline",
   "scope": "preproduction_text",
   "behavioral_evaluation": "initial_real_trial_passed",
@@ -8,6 +8,9 @@
     "run": "video-flow-runs/demo (outside repo)",
     "route": "advertising/brand, realism, 30s vertical",
     "outcome": "pass",
-    "notes": "coffee run story 首轮 pass 4/4/4/3/4（shortfilm 路线不经过本 Skill）"
+    "notes": "coffee run story 首轮 pass 4/4/4/3/4（0.1.0 版）；0.2.0 机制预选待下次广告路线试跑验证"
+  },
+  "provenance": {
+    "v0.2.0": "吸收 广告创意总监 1.0.0（skill_backup_repo a8ef98a）：机制预选路由 + 交接约定 + 36 条路由评估用例，存 references/creative-director/"
   }
 }
