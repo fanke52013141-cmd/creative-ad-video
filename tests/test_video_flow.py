@@ -223,6 +223,53 @@ class ProtocolTests(unittest.TestCase):
         with self.assertRaisesRegex(FlowError, 'locked'):
             engine.dispatch(self.run, 'story')
 
+    def test_event_chain_detects_history_tampering(self):
+        self.story()
+        state = read(self.run / 'checkpoint.json')
+        state['events'][0]['action'] = 'forged-action'
+        write(self.run / 'checkpoint.json', state)
+        with self.assertRaisesRegex(FlowError, 'event digest mismatch'):
+            engine.status(self.run)
+
+    def test_audit_clean_then_catches_forgeries(self):
+        self.story()
+        self.review('story_review')
+        candidates = {
+            'style': {'type': 'style', 'items': [{'id': 'LIGHT', 'axis': 'lighting', 'rule': 'window key light', 'story_reason': 'clarity'}]},
+            'storyboard': {'type': 'storyboard', 'items': [{'id': 'S001', 'scene_id': 'SC001', 'beat': 'share', 'action': 'share coffee', 'start_state': 'separate cups', 'end_state': 'shared table', 'duration_seconds': 30, 'axis': 'camera south', 'cut_motivation': 'scene complete', 'sound': 'room tone'}]},
+            'assets': {'type': 'assets', 'items': [{'id': 'CUP', 'kind': 'prop', 'description': 'coffee cup', 'shot_ids': ['S001'], 'continuity_rules': 'same cup'}]},
+            'edit_sound': {'type': 'edit_sound', 'items': [{'id': 'ED001', 'shot_id': 'S001', 'picture_cut': 'end', 'sound': 'room tone', 'motivation': 'leave on response'}]}}
+        for stage, candidate in candidates.items():
+            packet = self.dispatch(stage)
+            self.put(packet, candidate)
+            engine.submit(self.run, packet['task_id'])
+            self.review(stage + '_review')
+        report = engine.audit(self.run)
+        self.assertEqual(report['status'], 'clean')
+        self.assertEqual(report['violations'], [])
+        self.assertGreater(report['checked']['tasks'], 0)
+        # forgery 1: an extra file smuggled into a worker output directory
+        work_dir = next((self.run / 'work').iterdir())
+        (work_dir / 'smuggled.txt').write_text('x', encoding='utf-8')
+        report = engine.audit(self.run)
+        self.assertEqual(report['status'], 'violations')
+        self.assertTrue(any('unexpected files' in v for v in report['violations']))
+        (work_dir / 'smuggled.txt').unlink()
+        # forgery 2: a reviewer id that also appears as an author (self-review after the fact)
+        state = read(self.run / 'checkpoint.json')
+        state['tasks'][state['stages']['story_review']['task_id']]['agent_id'] = 'story-agent'
+        write(self.run / 'checkpoint.json', state)
+        report = engine.audit(self.run)
+        self.assertEqual(report['status'], 'violations')
+        self.assertTrue(any('role isolation' in v for v in report['violations']))
+
+    def test_protocol_entrypoint_lists_binding_rules(self):
+        rules = engine.protocol()
+        self.assertTrue(rules['steps'])
+        joined = ' '.join(rules['steps'] + rules['prohibited'])
+        self.assertIn('全新上下文', joined)
+        self.assertIn('不自己创作', joined)
+
 
 class MediaFanoutTests(unittest.TestCase):
     """Fanout media stages: one bounded task per item, minimal packets, item-scoped repair."""

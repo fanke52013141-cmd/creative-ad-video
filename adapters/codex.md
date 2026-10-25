@@ -2,7 +2,7 @@
 
 本标准依赖宿主提供子 Agent 工具。Python CLI 负责契约与状态，不能从普通 Python 代码调用聊天中的 spawn 工具。没有宿主调度时只能准备任务，不能声称已经执行。
 
-1. `python -m video_flow status RUN` 查看 ready。
+1. `python -m video_flow protocol` 读取强制协议；`python -m video_flow status RUN` 查看 ready。
 2. `python -m video_flow dispatch RUN STAGE` 生成并登记 packet。
 3. 主 Agent 以新上下文（当前工具 `fork_turns="none"`）spawn；只传 packet 绝对路径、`docs/contracts.md`、选定 Skill 与任务目的。不得复制整个历史。并行只启动互不依赖的 ready 节点。
 4. 取得真实 agent ID后 `python -m video_flow bind RUN TASK_ID AGENT_ID`，向工作者告知ID；工作者只写候选和回执。

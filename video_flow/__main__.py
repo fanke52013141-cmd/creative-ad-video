@@ -16,8 +16,9 @@ def main():
     init.add_argument('--brief', required=True)
     init.add_argument('--approval', choices=['key_decisions', 'automatic'], default='key_decisions')
     init.add_argument('--media', action='store_true', help='include reference-media fanout stages')
-    for name in ('status', 'package'):
+    for name in ('status', 'package', 'audit'):
         sub.add_parser(name).add_argument('run')
+    sub.add_parser('protocol')
     dispatch = sub.add_parser('dispatch')
     dispatch.add_argument('run')
     dispatch.add_argument('stage')

@@ -15,6 +15,7 @@
 ```powershell
 python -m pip install -r requirements.txt
 $env:PYTHONUTF8='1'
+python -m video_flow protocol
 python -m video_flow doctor
 python -m video_flow init ../video-flow-runs/demo --brief examples/video_flow/coffee-brief.json
 python -m video_flow status ../video-flow-runs/demo
@@ -36,7 +37,7 @@ python -m video_flow invalidate RUN story --reason '创作修订原因'
 python -m video_flow package RUN
 ```
 
-[任务契约](docs/contracts.md) 说明候选、审查与回执。所有run应置于仓库外；不向框架提交客户资料。
+[任务契约](docs/contracts.md) 说明候选、审查与回执。所有run应置于仓库外；不向框架提交客户资料。接入的协调Agent必须先执行 `python -m video_flow protocol` 并遵守其步骤与禁项；任何 run 事后可执行 `python -m video_flow audit RUN` 取证核验（哈希链、回执、契约重放、作者/评审隔离、工作目录卫生）——验收级机制能发现违规，强阻止需宿主权限隔离。
 
 ## 验证
 

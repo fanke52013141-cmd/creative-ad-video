@@ -6,6 +6,8 @@ the actual agent ID, and submit validates its receipt; no printed task is execut
 from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
+import hashlib
+import json
 import shutil
 import uuid
 import yaml
@@ -14,6 +16,38 @@ from .contracts import (FlowError, require, brief_check, artifact_check, review_
 from .storage import read, write, digest, tree_digest, inside, transaction
 
 ROOT = Path(__file__).resolve().parents[1]
+GENESIS = 'GENESIS'
+
+
+def event_digest(ev):
+    body = {k: v for k, v in ev.items() if k != 'digest'}
+    payload = json.dumps(body, ensure_ascii=False, sort_keys=True).encode()
+    return hashlib.sha256(payload).hexdigest()
+
+
+def event(state, action, **fields):
+    prev = state['events'][-1]['digest'] if state['events'] and 'digest' in state['events'][-1] else GENESIS
+    ev = {'time': datetime.now(timezone.utc).isoformat(), 'action': action, 'seq': len(state['events']), 'prev': prev, **fields}
+    ev['digest'] = event_digest(ev)
+    state['events'].append(ev)
+
+
+def verify_events(state):
+    """Hash-chained history: any edit or reordering of persisted events breaks the chain.
+
+    Runs created before chaining have unchained prefixes; they verify only until the
+    first chained event, after which chaining is mandatory.
+    """
+    prev = GENESIS
+    chained = False
+    for i, ev in enumerate(state['events']):
+        if 'digest' not in ev:
+            require(not chained, f'event chain broken at {i}: unchained event after chained history')
+            continue
+        chained = True
+        require(ev.get('prev') == prev and ev.get('seq') == i, f'event chain broken at {i}')
+        require(event_digest(ev) == ev['digest'], f'event digest mismatch at {i}')
+        prev = ev['digest']
 
 
 def load_yaml(path):
@@ -130,6 +164,18 @@ def integrity(run, state):
     standard(run, state)
     for name in state['artifacts']:
         artifact(run, state, name)
+    verify_events(state)
+
+
+def task_roles(run, state):
+    """Agent ids split by role across the whole run, from the bound task packets."""
+    authors, reviewers = set(), set()
+    for entry in state['tasks'].values():
+        if entry.get('agent_id') is None:
+            continue
+        task = read(inside(run, entry['path'], True))
+        (reviewers if task.get('review_target') else authors).add(entry['agent_id'])
+    return authors, reviewers
 
 
 def ready_rows(workflow, state):
@@ -163,10 +209,6 @@ def status(run):
             row.pop('results', None)
     return {'run_id': state['run_id'], 'sequence': state['sequence'], 'stages': stages,
             'ready': [x['id'] for x in ready_rows(workflow, state)]}
-
-
-def event(state, action, **fields):
-    state['events'].append({'time': datetime.now(timezone.utc).isoformat(), 'action': action, **fields})
 
 
 def fanout_queue(run, state, row):
@@ -339,16 +381,12 @@ def bind(run, task_id, agent_id):
         integrity(run, state)
         entry, task = task_load(run, state, task_id)
         require(entry['status'] == 'dispatched' and entry['agent_id'] is None, 'task already bound or closed')
+        # Run-wide role isolation: no agent may review anything it (or its id) authored.
+        authors, reviewers = task_roles(run, state)
         if task['review_target']:
-            target_stage = state['stages'][task['review_target']]
-            authors = []
-            if 'item_states' in target_stage:
-                authors = [state['tasks'][cell['task_id']]['agent_id']
-                           for cell in target_stage['item_states'].values()
-                           if cell.get('task_id') and cell['task_id'] in state['tasks']]
-            elif target_stage.get('task_id'):
-                authors = [state['tasks'][target_stage['task_id']]['agent_id']]
-            require(agent_id not in authors, 'reviewer must differ from author')
+            require(agent_id not in authors, 'reviewer must differ from any author of this run')
+        else:
+            require(agent_id not in reviewers, 'author id must not already be a reviewer of this run')
         entry['agent_id'] = agent_id
         entry['status'] = 'running'
         stage = state['stages'][task['stage']]
@@ -633,3 +671,115 @@ def bindable_prompt(packet):
             "Use fresh context, the supplied inputs and applicable skill reference sections. "
             "The coordinator will bind your actual agent ID. Return needs_input rather than invent facts. "
             "Do not submit, approve, modify checkpoint, or read unrelated run artifacts.")
+
+
+PROTOCOL = {
+    'title': 'Video Flow 强制协调协议',
+    'steps': [
+        'init 创建 run（真实 run 置于仓库外）；不修改已初始化 run 的 brief 或标准。',
+        'status 查看 ready；只 dispatch 就绪阶段（扇出阶段逐项 dispatch RUN STAGE ITEM）。',
+        '以全新上下文 spawn 子 Agent：只传任务包、docs/contracts.md、锁定技能；主 Agent 不自己创作任何产物。',
+        'bind 真实 agent ID 后告知工作者；工作者只写 candidate.json 与 receipt.json。',
+        'submit 只验收候选；评审任务必须由与全部作者不同的全新 Agent 执行。',
+        'revise 后按预算派修订轮（工作者只拿上一份评审）；耗尽预算即报告阻塞。',
+        'awaiting_approval 由用户具体决定后 approve；automatic 模式仍保留独立质量评审。',
+        '全部 accepted 后 package；交付前核对 manifest 哈希并如实声明限制。',
+    ],
+    'prohibited': [
+        '主 Agent 直接创作 candidate 或代替子 Agent 生成媒体。',
+        '作者复用为评审、编造 agent_id、伪造或补交回执。',
+        '合并生成（一图多 item / 一包多镜）、修改锁定事实、绕过 CLI 直接改写 checkpoint。',
+        '把合成测试通过宣称为创作质量，或宣称未执行的检查已执行。',
+    ],
+    'enforcement': 'acceptance',
+}
+
+
+def protocol():
+    return dict(PROTOCOL)
+
+
+def audit(run):
+    """Forensic re-verification of a run: hashes, receipts, contract replay, role isolation, workdir hygiene.
+
+    Acceptance-grade: detects misuse after the fact; it cannot prevent a full-privilege agent from tampering.
+    """
+    run = Path(run)
+    violations = []
+    checked = {'tasks': 0, 'stale_tasks': 0, 'artifacts': 0, 'media_files': 0}
+    state = read(run / 'checkpoint.json')
+
+    def flow_violation(label):
+        violations.append(label)
+
+    try:
+        standard(run, state)
+    except FlowError as exc:
+        flow_violation(f'standard: {exc}')
+    for name, ref in state['artifacts'].items():
+        checked['artifacts'] += 1
+        try:
+            data = artifact(run, state, name)
+            if data.get('type') == 'media':
+                for row in data['items']:
+                    checked['media_files'] += 1
+                    if digest(inside(run, row['file'], True)) != row['sha256']:
+                        flow_violation(f"media file hash mismatch: {row['item']}")
+        except FlowError as exc:
+            flow_violation(f'artifact {name}: {exc}')
+    try:
+        verify_events(state)
+    except FlowError as exc:
+        flow_violation(f'events: {exc}')
+
+    workflow = read(run / 'standard/workflow.json')
+    rows = {x['id']: x for x in workflow['stages']}
+    authors, reviewers = set(), set()
+    for task_id, entry in state['tasks'].items():
+        try:
+            task = read(inside(run, entry['path'], True))
+        except FlowError as exc:
+            flow_violation(f'task {task_id}: {exc}')
+            continue
+        if entry['status'] == 'stale':
+            checked['stale_tasks'] += 1
+            continue
+        checked['tasks'] += 1
+        role = 'reviewer' if task.get('review_target') else 'author'
+        (reviewers if role == 'reviewer' else authors).add(entry.get('agent_id'))
+        base = run / 'work' / task_id
+        try:
+            require(digest(inside(run, entry['path'], True)) == entry['sha256'], 'packet hash mismatch')
+            receipt = read(inside(run, entry['receipt_path'], True))
+            require(digest(inside(run, entry['receipt_path'], True)) == entry['receipt_sha256'], 'receipt file hash mismatch')
+            require(receipt.get('task_id') == task_id and receipt.get('agent_id') == entry['agent_id'], 'receipt actor/task mismatch')
+            candidate = read(base / 'candidate.json')
+            require(receipt.get('output_sha256') == digest(base / 'candidate.json'), 'candidate hash mismatch')
+            require(receipt.get('input_hashes') == task['input_hashes'], 'receipt inputs mismatch')
+            require(receipt.get('skill_sha256') == task['skill_sha256'], 'receipt skill mismatch')
+            extra = sorted(p.name for p in base.iterdir() if p.name not in {'candidate.json', 'receipt.json'})
+            require(not extra, f'unexpected files in work dir: {", ".join(extra)}')
+            row = rows[task['stage']]
+            if task.get('review_target'):
+                target_name = task['review_target']
+                ref = state['artifacts'].get(target_name)
+                require(ref is not None, 'missing review target artifact')
+                review_check(candidate, read(inside(run, ref['path'], True)), task['input_hashes'][target_name], row['criteria'])
+            elif row.get('fanout') and row.get('item_artifact', 'media_item') == 'media_item':
+                media_item_check(candidate)
+                require(candidate['file'] == task['fanout']['target_file'], 'candidate file mismatch')
+                require(digest(inside(run, candidate['file'], True)) == candidate['sha256'], 'media hash mismatch')
+            elif row.get('fanout'):
+                video_prompt_check(candidate)
+            else:
+                artifact_check(candidate, row['artifact_type'], task['inputs'])
+        except FlowError as exc:
+            flow_violation(f'task {task_id} ({role}): {exc}')
+        except (OSError, KeyError, TypeError) as exc:
+            flow_violation(f'task {task_id} ({role}): {exc}')
+    crossing = reviewers & authors
+    if crossing:
+        flow_violation(f'role isolation: agent ids appear as both author and reviewer: {", ".join(sorted(crossing))}')
+
+    return {'run': str(run.resolve()), 'run_id': state['run_id'], 'status': 'clean' if not violations else 'violations',
+            'violations': violations, 'checked': checked}

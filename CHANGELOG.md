@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-24 - 流程遵守保障（协议入口、事件哈希链、audit 取证）
+
+### Added
+- [engine] 事件哈希链：每条事件携带 seq/prev/digest，任何对已持久化历史的改动或重排都会在后续任意命令的 integrity 校验中断链；链化之前创建的旧 run 按 legacy 前缀处理。
+- [engine] bind 升级为 run 级角色隔离：评审 Agent 不得与全 run 任何作者同 ID，作者 ID 也不得已担任过评审（原仅校验当前目标，现覆盖扇出全体）。
+- [engine] `audit RUN` 取证命令：标准/产物/媒体文件哈希、回执绑定与完整性、按任务类型契约重放（含 review_check 与媒体文件哈希）、工作目录卫生（只允许 candidate+receipt）、全 run 作者/评审交叉比对；输出 clean/violations 清单。
+- [engine] `protocol` 命令：一页强制协调协议（步骤+禁项），AGENTS/adapters/README 指向它作为接入入口。
+- [tests] 链篡改检测、audit 先 clean 后抓两类伪造（夹带文件、事后改评审为作者）、protocol 内容，共 50 个。
+
+### Reason
+- 实践中接入的 Agent 不一定自觉遵守协调协议；机械检查此前只保证「做对时能通过」，缺「违规事后必被发现」与「入口即告知义务」。验收级边界不变：全权限 Agent 仍可篡改本地文件，audit 让篡改可检测，强阻止需宿主隔离。
+
+### Compatibility
+- 旧 run（未链化事件）audit 按 legacy 处理可正常通过；新 run 全链化。bind 角色隔离对真实 run 无影响（三次 run 的 12+14+26 个绑定全部通过重验）。
+
 ## 2026-10-24 - 输入最小化审计修复
 
 ### Changed
