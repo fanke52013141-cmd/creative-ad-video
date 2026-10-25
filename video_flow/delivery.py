@@ -242,6 +242,12 @@ def export_production_package(run, artifacts, output, config):
                 mapping.append(f"{span['shot_id']}：{_seconds(span['source_start_ms'])}—{_seconds(span['source_end_ms'])}秒")
             if segment.get('padding'):
                 mapping += ['存在生成补时，补时不计入源剧本时长；按时间映射保留所需区间。']
+            if prompt.get('audio_delivery') == 'postproduction':
+                from .prompts import reference_text
+                tag = (manifest.get('platform_profile') or {}).get('limits', {}).get('image_tag_template', '@图片{slot}')
+                mapping += ['', '后期声音交接（本模式不生成原生声音）：', reference_text(prompt['audio'], prompt['references'], tag)]
+                for cue in prompt['timeline']:
+                    mapping.append(f"{_seconds(cue['local_start_ms'])}—{_seconds(cue['local_end_ms'])}秒：" + reference_text(cue['sound'], prompt['references'], tag))
             add_text(mapping_path, '\n'.join(mapping), 'reference_mapping')
             manifest['segments'].append({**segment, 'prompt_path': prompt_path,
                                          'mapping_path': mapping_path, 'references': refs})

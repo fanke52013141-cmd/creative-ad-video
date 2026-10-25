@@ -2,7 +2,46 @@
 
 基于 creative-ad-video V8 重构的视频创作执行标准。原项目保留在本仓库的旧命令中，新流程从 `python -m video_flow` 进入；二者状态不可混用。
 
-## 首版能力
+## v0.2 制作包入口
+
+当前为离线核心可用版本，完整优化尚未结束。已实现范围、验证口径与待完成事项见[更新状态说明](docs/v02-release-status.md)。
+
+通过 `--production-config` 启用18阶段制作流程：剧本、详细分镜、人物/场景/物品参考图、分镜板、按平台生成片段组织的视频提示词，以及可独立校验的TXT与图片交付包。旧run沿用已锁定版本；不带该参数时维持原有流程。
+
+```powershell
+$env:PYTHONUTF8='1'
+python -m video_flow init ../video-flow-runs/my-production --brief examples/v02/brief.json --media --production-config config/production.example.yaml
+python -m video_flow preflight ../video-flow-runs/my-production
+python -m video_flow status ../video-flow-runs/my-production
+```
+
+默认配置使用本地图片导入，Seedance参数来自用户提供手册，状态为user_supplied。当前v0.2自动生图适配未接入，generate模式明确阻断；测试配置仅用于无网络的合成媒体，不可作为正式画面。专业工作仍由宿主协调，详见 [v0.2契约](docs/contracts-v02.md)。
+
+```powershell
+# 首次剧本任务派发前可登记已有剧本，作者转换后仍需独立审查
+python -m video_flow import-input RUN --kind story --file PATH_TO_STORY_TXT
+# 素材需求就绪后，按reference_key导入图片；板图用 --stage board_media
+python -m video_flow import-media RUN --reference-key CHAR001.work.front --file PATH_TO_PNG
+# 查看局部修订将影响哪些板图和生成片段
+python -m video_flow impact RUN --reference-key CHAR001.work.front
+# 所有阶段接受后导出到一个尚不存在的目录
+python -m video_flow validate RUN --scope delivery
+python -m video_flow package RUN --format external-production --out NEW_PACKAGE_DIRECTORY
+python -m video_flow verify-package NEW_PACKAGE_DIRECTORY
+```
+
+交付目录包含 `剧本.txt`、`详细分镜.txt`、`交付清单.txt`、三个资产文件夹和 `分镜板/V###/` 内的板图、参考映射TXT、视频提示词TXT。复制到新目录后可独立验证。平台实际标签在上传后核对，外部视频效果保持unverified。
+
+可复现合成样例（目标目录必须不存在；图片为协议测试色块）：
+
+```powershell
+$env:PYTHONPATH='.'
+python tests/test_v02_pipeline.py --write-f01 ../video-flow-runs/v02-synthetic-F01
+```
+
+合成样例验证文件、依赖、返修与交付；真实视觉评审和新宿主端到端试用单独登记。DeepSeek适配步骤见 [接入清单](adapters/deepseek-harness.md)，尚未标记已验证。
+
+## 原有入口能力
 
 支持品牌/转化广告和单篇艺术、娱乐、公共表达短片，写实风格，交付前期文本包。主Agent协调；专业子Agent以新上下文处理指定任务；独立review后接受产物。阶段与依赖只有config/workflow.yaml一份定义。
 

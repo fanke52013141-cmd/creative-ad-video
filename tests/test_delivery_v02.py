@@ -131,6 +131,19 @@ class DeliveryTests(unittest.TestCase):
         with self.assertRaisesRegex(FlowError, 'hash'):
             verify_package(self.output)
 
+    def test_deferred_sound_is_delivered_in_mapping_with_resolved_names(self):
+        for prompt in self.artifacts['video_prompts']['items']:
+            key = prompt['references'][0]['reference_key']
+            prompt['audio_delivery'] = 'postproduction'
+            prompt['audio'] = '{{ref:' + key + '}}的脚步声。'
+            for cue in prompt['timeline']:
+                cue['sound'] = '脚步轻响'
+        self.export()
+        mapping = (self.output/'分镜板/V001/V001_参考图映射.txt').read_text(encoding='utf-8-sig')
+        self.assertIn('后期声音交接', mapping)
+        self.assertIn('脚步声', mapping)
+        self.assertNotIn('{{ref:', mapping)
+
     def test_corrupt_image_rejected_even_if_manifest_hash_is_refreshed(self):
         self.export()
         manifest = self.manifest()

@@ -2,6 +2,16 @@
 
 记录框架与 Skill 的真实执行进展。合成单元测试通过不代表创作质量；本文件只记录真实子 Agent 试用的流程行为与门禁结果。
 
+## 2026-10-25 v0.2 离线实施与验证
+
+本节例外记录工程验证，明确区别于下文真实创作试用：116项单元/集成/故障测试通过（49.328秒），doctor验证16个原流程阶段与18个制作阶段，流程契约、文档引用、仓库政策检查退出码均为0。
+
+仓库外证据：`../video-flow-runs/v02-implementation-checks/verification-r001/result.json`，逐条测试输出在同目录unit-tests.stderr.txt。固定F01包：`../video-flow-runs/v02-acceptance-F01-r001/delivery`；证据evidence.json记录18阶段、29个合成任务、10张合成图、4份视频提示词及audit clean。样例标签为synthetic_package_ready；图片是色块协议夹具。
+
+已验证：详细文本与三类图片目录导出、板格与片段覆盖、相对路径迁移、名称/哈希/时序拦截、素材导入、原剧本来源校验、精确局部返修、旧任务拒收与旧包保留。视频生成无调用。
+
+待完成：真实图像provider执行与超时请求去重、真实人物/物品连续性目检、正式Skill行为试用、Codex与DeepSeek完整新版本创作试跑。默认图片导入；generate路线当前明确阻断，不因为有模型名称就宣称自动生成可用。新专业Skill为draft，研究深度与行为评估未满足全部发布目标。
+
 ## 2026-10-24 第三次真实试用：媒体扇出层（--media run 全链路）
 
 - Run：`../video-flow-runs/shortfilm-media`（仓库外），交付包 `PKG-992cd52647b34b32b95628f90a867737`，交付等级 `preproduction_text_and_reference_media`，manifest 25 文件（16 JSON + 9 张带 SHA256 的参考图）。

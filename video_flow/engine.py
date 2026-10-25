@@ -223,8 +223,14 @@ def status(run):
             row['items_done'] = sorted(k for k, v in entry['item_states'].items() if v['status'] == 'done')
             row.pop('item_states', None)
             row.pop('results', None)
-    return {'run_id': state['run_id'], 'sequence': state['sequence'], 'stages': stages,
-            'ready': [x['id'] for x in ready_rows(workflow, state)]}
+    ready = ready_rows(workflow, state)
+    result = {'run_id': state['run_id'], 'sequence': state['sequence'], 'stages': stages,
+              'ready': [x['id'] for x in ready]}
+    if state.get('version') == '0.2.0':
+        result['ready_items'] = {row['id']: [item['item'] for item in fanout_queue(run, state, row)
+                                           if state['stages'][row['id']].get('item_states', {}).get(item['item'], {}).get('status', 'pending') == 'pending']
+                                 for row in ready if row.get('fanout')}
+    return result
 
 
 def fanout_queue(run, state, row):
@@ -289,7 +295,7 @@ def dispatch(run, stage, item=None, executor_type='agent'):
         for key in row['inputs']:
             packet['inputs'][key] = artifact(run, state, key)
             packet['input_refs'][key] = state['artifacts'][key].copy()
-        if stage == 'story' and state.get('story_source'):
+        if stage in ('story', 'story_review') and state.get('story_source'):
             ref = state['story_source'].copy()
             packet['inputs']['story_source'] = {'text': inside(run, ref['path'], True).read_text(encoding='utf-8'), **ref}
             packet['input_refs']['story_source'] = ref
@@ -795,6 +801,25 @@ def import_input(run, kind, file):
     return execute(run, kind, file)
 
 
+def impact(run, reference_key):
+    """Preview current consumers using the same algorithm as actual invalidation."""
+    from copy import deepcopy
+    from .dependency_index import invalidate_dependents
+    state = read(Path(run) / 'checkpoint.json')
+    integrity(run, state)
+    require(state.get('version') == '0.2.0', 'impact requires v0.2')
+    origin = next((key for key in ('asset_media', 'board_media')
+                   if reference_key in state['stages'].get(key, {}).get('item_states', {})), None)
+    require(origin is not None, 'reference has no registered media item')
+    preview = deepcopy(state)
+    workflow = standard(run, state)
+    def reader(task_id):
+        return read(inside(run, state['tasks'][task_id]['path'], True))
+    affected = invalidate_dependents(preview, workflow, origin, {reference_key}, reader, descendants(workflow, origin)-{origin})
+    return {'status': 'preview', 'reference_key': reference_key, 'origin': origin,
+            'affected_items': affected, 'state_changed': False}
+
+
 def bindable_prompt(packet):
     return (f"Read task packet and its locked skill at {packet['skill_path']}. "
             f"Task ID {packet['task_id']}; output only candidate.json and receipt.json in {packet['output_root']}. "
@@ -818,7 +843,7 @@ PROTOCOL = {
     'prohibited': [
         '主 Agent 直接创作 candidate 或代替子 Agent 生成媒体。',
         '作者复用为评审、编造 agent_id、伪造或补交回执。',
-        '合并生成（一图多 item / 一包多镜）、修改锁定事实、绕过 CLI 直接改写 checkpoint。',
+        '合并多个独立媒体item到一张图、向任务塞入无关镜头、修改锁定事实、绕过CLI直接改写checkpoint；v0.2允许计划内同一V片段含多个相关源镜。',
         '把合成测试通过宣称为创作质量，或宣称未执行的检查已执行。',
     ],
     'enforcement': 'acceptance',
@@ -846,6 +871,12 @@ def audit(run):
         standard(run, state)
     except FlowError as exc:
         flow_violation(f'standard: {exc}')
+    if state.get('story_source'):
+        try:
+            ref = state['story_source']
+            require(digest(inside(run, ref['path'], True)) == ref['sha256'], 'imported story source changed')
+        except (FlowError, OSError) as exc:
+            flow_violation(f'story source: {exc}')
     for name, ref in state['artifacts'].items():
         checked['artifacts'] += 1
         try:

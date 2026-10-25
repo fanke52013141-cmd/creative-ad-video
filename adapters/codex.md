@@ -9,7 +9,9 @@
 5. 完成后 `python -m video_flow submit RUN TASK_ID`；这只接受候选，独立review任务需要再次spawn全新Agent，不能复用作者。
 6. 用户门禁由主Agent展示具体作品并收取决定后 `approve`；禁止自动编造批准理由。用户在init选择automatic时质量验收仍必需。
 7. revise后状态自动回到作者，任务包含本次反馈；按预算修复再独立复审。工具故障用retry记录；耗尽预算停止并报告。
-8. 全部accepted后 `package`。包仅含前期文本，交付清单声明限制。
+8. 全部accepted后 `package`。v0.1按锁定流程交付前期文本或参考图；v0.2可导出TXT、三类资产、分镜板、片段提示词及映射，交付清单声明平台绑定与外部视频效果未验证。
+
+启用v0.2时读取 [制作契约](../docs/contracts-v02.md)。图片采用import模式时使用import-media真实本地操作身份，保留独立看图审查；不能伪装成宿主已启动的工作者。generate通道未注册时返回具体缺口。先用preflight核实模式，再派发；--production-config不自动授权付费。
 
 启动示例：`python -m video_flow init ../video-flow-runs/my-run --brief examples/video_flow/coffee-brief.json`。
 

@@ -9,6 +9,8 @@ This repository contains the general video execution standard and the inherited 
 - Distinguish mechanical validation from creative quality. Report unexecuted checks and unsupported routes honestly.
 - Revisions are immutable; upstream changes invalidate descendants.
 - V1 delivers preproduction text. Provider duration/frame/text/product restrictions belong to profiles, not the universal standard. No paid generation or publishing is implied.
+- V0.2 is explicitly selected with --production-config and --media; read docs/contracts-v02.md. It delivers portable TXT/reference-image packages using reviewed imports or offline mock fixtures. Paid image-provider execution and external video generation are not enabled by this selection.
+- Imported story sources must be hash-verified and shared with both writer and reviewer. Deterministic media import uses its declared import operation identity; do not fabricate a spawned agent identity.
 - Media fanout (`--media` runs) is one bounded task per item: dispatch a single item, spawn a fresh worker per item, one image per task. Revisions reopen only cited items; never merge items into one image or one context.
 - Use the user-supplied skill-building-expert for skill construction. Professional packages target 10,000-20,000 original Chinese characters across entrypoint, references and evaluation prose. Keep the entrypoint concise; do not pad or invent research/results.
 - Keep real runs out of git; tests and committed examples use synthetic inputs.

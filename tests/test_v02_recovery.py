@@ -28,6 +28,11 @@ class V02RecoveryTests(unittest.TestCase):
         self.assertTrue(old_path.is_file())
         old_package=fixture.base/'before-revision'
         engine.package(self.run,format='external-production',out=old_package)
+        checkpoint_before = (self.run/'checkpoint.json').read_bytes()
+        impact = engine.impact(self.run, 'CHAR001.default.front')
+        self.assertEqual(set(impact['affected_items']['board_media']), {'SB001', 'SB002'})
+        self.assertEqual(set(impact['affected_items']['video_prompts']), {'PROMPT-V001', 'PROMPT-V002'})
+        self.assertEqual((self.run/'checkpoint.json').read_bytes(), checkpoint_before)
         engine.invalidate(self.run,'asset_media','Synthetic actor appearance change',item='CHAR001.default.front')
         state=read(self.run/'checkpoint.json')
         board_cells=state['stages']['board_media']['item_states']
@@ -87,6 +92,33 @@ class V02RecoveryTests(unittest.TestCase):
         state=read(self.run/'checkpoint.json')
         self.assertNotIn('asset_media',state['artifacts'])
         self.assertNotEqual(state['stages']['asset_media_review']['status'],'accepted')
+
+    def test_imported_story_is_shared_with_independent_reviewer(self):
+        fixture = self.fixture
+        source = fixture.base/'story.txt'
+        body = '场景一：人物看向台灯。对白：“灯亮了。”'
+        source.write_text(body, encoding='utf-8-sig')
+        engine.import_input(self.run, 'story', source)
+        packet = fixture.dispatch('story')
+        self.assertEqual(packet['inputs']['story_source']['text'], body)
+        fixture.put(packet, fixture.fixtures['story'])
+        engine.submit(self.run, packet['task_id'])
+        review = fixture.dispatch('story_review')
+        self.assertEqual(review['inputs']['story_source']['text'], body)
+        self.assertEqual(review['input_hashes']['story_source'], packet['input_hashes']['story_source'])
+
+    def test_imported_story_tamper_blocks_dispatch_and_is_audited(self):
+        fixture = self.fixture
+        source = fixture.base/'story.txt'
+        source.write_text('原剧本', encoding='utf-8')
+        engine.import_input(self.run, 'story', source)
+        state = read(self.run/'checkpoint.json')
+        (self.run/state['story_source']['path']).write_text('被修改', encoding='utf-8')
+        with self.assertRaisesRegex(FlowError, 'story source changed'):
+            engine.dispatch(self.run, 'story')
+        report = engine.audit(self.run)
+        self.assertEqual(report['status'], 'violations')
+        self.assertTrue(any('story source' in item for item in report['violations']))
 
 
 if __name__=='__main__':
