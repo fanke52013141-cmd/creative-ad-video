@@ -1,0 +1,13 @@
+{
+  "name": "场景视觉设计",
+  "slug": "scene-visual-design",
+  "version": "1.0.0",
+  "entry": "SKILL.md",
+  "summary": "生成同一地点的场景主视图与四宫格提示词，锁定空间结构、光源和环境叙事。",
+  "origin": "self-with-research",
+  "source": "用户提供提示词与经核实公开专家资料",
+  "updated": "2026-10-24",
+  "category": "视频制作/资产设计",
+  "status": "draft",
+  "validation": "结构校验与作者桌面案例；独立前向与实际生成待测试"
+}

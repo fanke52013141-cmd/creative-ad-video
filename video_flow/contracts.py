@@ -41,6 +41,7 @@ FIELDS = {
     "assets": ["kind", "description", "shot_ids", "continuity_rules"],
     "edit_sound": ["shot_id", "picture_cut", "sound", "motivation"],
     "media_item": ["item", "file", "sha256", "prompt"],
+    "video_prompt": ["item", "shot_id", "prompt", "camera", "sound"],
 }
 
 
@@ -80,6 +81,13 @@ def media_item_check(value):
     require(not value["file"].startswith(("/", "\\")) and ".." not in value["file"], "media file must be a safe run-relative path")
 
 
+def video_prompt_check(value):
+    """One task, one shot: a text candidate for a single per-shot fanout item."""
+    require(isinstance(value, dict) and value.get("type") == "video_prompt", "expected artifact type video_prompt")
+    for field in FIELDS["video_prompt"]:
+        require(text(value.get(field)), f"video prompt requires {field}")
+
+
 def media_check(value, expected_items):
     """Assembled fanout artifact: exactly the queued items, each with its own image."""
     require(isinstance(value, dict) and value.get("type") == "media", "expected artifact type media")
@@ -91,6 +99,16 @@ def media_check(value, expected_items):
     for row in items:
         for field in ("file", "sha256", "prompt"):
             require(text(row.get(field)), f"{row.get('item')} missing {field}")
+
+
+def fanout_set_check(value, expected_items):
+    """Assembled text fanout artifact: exact coverage, each item keeps its candidate content."""
+    require(isinstance(value, dict) and value.get("type") == "fanout_set", "expected artifact type fanout_set")
+    items = value.get("items")
+    require(isinstance(items, list) and items, "fanout items must not be empty")
+    ids = [x.get("item") for x in items]
+    require(all(text(x) for x in ids) and len(set(ids)) == len(ids), "fanout item ids must be nonempty and unique")
+    require(set(ids) == set(expected_items), "fanout set must cover exactly the queued items")
 
 
 def review_check(review, target, target_hash, required_criteria):

@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-10-24 - 引入外部专业知识包与逐镜视频提示词阶段
+
+### Added
+- [skill] 自 skill_backup_repo（commit 59abbc32，出处与 draft 状态记于各 package.json provenance）引入 4 个方法知识包：character-visual-design / scene-visual-design / storyboard-panel-prompts / video-shot-prompts（各约 1.0–1.2 万字，含基础规范/生产方法/专家来源/案例验收）。
+- [skill] art-direction 升级 0.2.0：吸收「视频视觉开发总监」方法论（references/ 与 evaluation/），保留本仓库 style 输出契约，新增跨轴次序自查强制条款（两次试用教训）。
+- [engine] 扇出分派 `skill_by_kind`：媒体项任务包按条目类别锁定对应专业知识包（character/scene/board），skill 快照与哈希校验照常；新增 per_shot 模式与文本型扇出项（video_prompt/fanout_set 契约与校验）。
+- [workflow] `--media` run 新增 video_prompts（逐镜视频提示词，依赖板图评审与声画评审）及其独立评审。
+- [scripts] validate_pipeline_contract 孤儿扫描纳入 fanout.skill_by_kind。
+- [tests] 新增 skill_by_kind 路由与逐镜文本扇出测试，共 46 个。
+
+### Reason
+- 本仓库生成类技能只有协议壳（约 500 字），提示词方法论薄弱；外部知识包与流水线契约互补（知识包负责"怎么写提示词"，generate-media 负责协议与工具调用），并补上缺失的视频提示词阶段。
+
+### Compatibility
+- 文本 run（无 --media）行为不变；旧 run 锁定快照不受影响。外部知识包为 draft（原仓库未做独立前向测试），下次媒体 run 试跑后据实登记评估状态。
+
 ## 2026-10-24 - 媒体扇出层全链路真实试用
 
 ### Changed

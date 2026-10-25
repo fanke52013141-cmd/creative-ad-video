@@ -1,0 +1,4 @@
+interface:
+  display_name: "角色视觉设计"
+  short_description: "生成同一角色的转面参考图与全身立绘提示词，建立剪影、服装结构与多角度锚点。"
+  default_prompt: "请使用 $角色视觉设计，根据我提供的材料生成对应的专业文字产物。"

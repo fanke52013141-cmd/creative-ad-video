@@ -29,7 +29,10 @@ class ProtocolTests(unittest.TestCase):
         for name in ('workflow.yaml', 'routes.yaml'):
             shutil.copyfile(ROOT / 'config' / name, self.root / 'config' / name)
         # Protocol tests isolate skill contents from concurrent authoring/research.
-        names = {x['skill'] for x in engine.load_yaml(self.root / 'config/workflow.yaml')['stages']} - {'$writer'}
+        stages = engine.load_yaml(self.root / 'config/workflow.yaml')['stages']
+        names = {x['skill'] for x in stages} - {'$writer'}
+        for x in stages:
+            names.update((x.get('fanout') or {}).get('skill_by_kind', {}).values())
         for name in names | {'script-ad', 'script-shortfilm'}:
             path = self.root / '.agents/skills' / name / 'SKILL.md'
             path.parent.mkdir(parents=True)
@@ -220,7 +223,10 @@ class MediaFanoutTests(unittest.TestCase):
         (self.root / 'config').mkdir(parents=True)
         for name in ('workflow.yaml', 'routes.yaml'):
             shutil.copyfile(ROOT / 'config' / name, self.root / 'config' / name)
-        names = {x['skill'] for x in engine.load_yaml(self.root / 'config/workflow.yaml')['stages']} - {'$writer'}
+        stages = engine.load_yaml(self.root / 'config/workflow.yaml')['stages']
+        names = {x['skill'] for x in stages} - {'$writer'}
+        for x in stages:
+            names.update((x.get('fanout') or {}).get('skill_by_kind', {}).values())
         for name in names | {'script-ad', 'script-shortfilm'}:
             path = self.root / '.agents/skills' / name / 'SKILL.md'
             path.parent.mkdir(parents=True)
@@ -300,6 +306,12 @@ class MediaFanoutTests(unittest.TestCase):
         boards = engine.dispatch(self.run, 'board_media', 'BOARD-SC001')
         self.assertEqual(len(boards['inputs']['storyboard']['shots']), 1)
 
+    def video_prompt_item(self):
+        packet = self.dispatch('video_prompts', item='PROMPT-S001')
+        self.put(packet, {'type': 'video_prompt', 'item': 'PROMPT-S001', 'shot_id': 'S001',
+                          'prompt': 'synthetic shot prompt', 'camera': 'static', 'sound': 'room tone'})
+        return engine.submit(self.run, packet['task_id'])
+
     def test_media_flow_assembles_packages_and_hashes(self):
         self.text_flow()
         self.media_item('asset_media', 'CHAR-1')
@@ -311,11 +323,14 @@ class MediaFanoutTests(unittest.TestCase):
         self.review('asset_media_review')
         self.media_item('board_media', 'BOARD-SC001')
         self.review('board_media_review')
+        self.video_prompt_item()
+        self.review('video_prompts_review')
         package = engine.package(self.run)
         manifest = read(Path(package['package']) / 'manifest.json')
         self.assertEqual(manifest['delivery_level'], 'preproduction_text_and_reference_media')
         media_files = [f for f in manifest['files'] if f['path'].startswith('media/')]
         self.assertEqual(len(media_files), 3)
+        self.assertEqual(len([f for f in manifest['files'] if f['artifact'] == 'video_prompts']), 1)
         for ref in manifest['files']:
             self.assertEqual(digest(Path(package['package']) / ref['path']), ref['sha256'])
 
@@ -348,6 +363,42 @@ class MediaFanoutTests(unittest.TestCase):
         packet = engine.dispatch(self.run, 'asset_media', 'CHAR-1')
         self.assertIn('repair_feedback', packet)
         self.assertEqual(packet['repair_feedback']['issues'][0]['location'], 'item CHAR-1 prompt')
+
+    def test_skill_by_kind_routing(self):
+        self.text_flow()
+        packet = self.dispatch('asset_media', item='CHAR-1')
+        self.assertEqual(packet['skill'], 'character-visual-design')
+        board = self.dispatch('board_media', item='BOARD-SC001')
+        self.assertEqual(board['skill'], 'storyboard-panel-prompts')
+        space = self.dispatch('asset_media', item='SPACE-1')
+        self.assertEqual(space['skill'], 'scene-visual-design')
+
+    def test_video_prompt_text_fanout(self):
+        self.text_flow()
+        self.media_item('asset_media', 'CHAR-1')
+        self.media_item('asset_media', 'SPACE-1')
+        self.review('asset_media_review')
+        self.media_item('board_media', 'BOARD-SC001')
+        self.review('board_media_review')
+        packet = self.dispatch('video_prompts', item='PROMPT-S001')
+        self.assertEqual(packet['skill'], 'video-shot-prompts')
+        self.assertEqual(packet['artifact_type'], 'video_prompt')
+        self.assertEqual(packet['fanout']['shot_id'], 'S001')
+        self.assertNotIn('target_file', packet['fanout'])
+        self.put(packet, {'type': 'video_prompt', 'item': 'PROMPT-S001', 'shot_id': 'S001',
+                          'prompt': 'synthetic shot prompt', 'camera': 'static', 'sound': 'room tone'})
+        stages = engine.submit(self.run, packet['task_id'])['stages']
+        self.assertEqual(stages['video_prompts']['status'], 'submitted')
+        self.review('video_prompts_review')
+        assembled = read(self.run / next(iter(
+            f"artifacts/video_prompts/{r['path'].split('/')[-1]}"
+            for r in [read(self.run / 'checkpoint.json')['artifacts']['video_prompts']])))
+        self.assertEqual(assembled['type'], 'fanout_set')
+        self.assertEqual(len(assembled['items']), 1)
+        package = engine.package(self.run)
+        manifest = read(Path(package['package']) / 'manifest.json')
+        prompts = [f for f in manifest['files'] if f['artifact'] == 'video_prompts']
+        self.assertEqual(len(prompts), 1)
 
     def test_invalidate_single_item(self):
         self.text_flow()

@@ -10,7 +10,7 @@ import shutil
 import uuid
 import yaml
 from .contracts import (FlowError, require, brief_check, artifact_check, review_check, text,
-                        media_item_check, media_check)
+                        media_item_check, media_check, fanout_set_check, video_prompt_check)
 from .storage import read, write, digest, tree_digest, inside, transaction
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -75,6 +75,8 @@ def initialize(run, brief, approval='key_decisions', root=ROOT, media=False):
     route = resolve_route(brief, routes)
     require(not run.exists(), 'run directory already exists')
     skills = {route['writer'] if x['skill'] == '$writer' else x['skill'] for x in workflow['stages']}
+    for x in workflow['stages']:
+        skills.update((x.get('fanout') or {}).get('skill_by_kind', {}).values())
     for skill in skills:
         require((root / '.agents/skills' / skill / 'SKILL.md').is_file(), f'missing skill: {skill}')
     # Build in a sibling temp directory, making incomplete initialization invisible.
@@ -171,6 +173,9 @@ def fanout_queue(run, state, row):
     """Item queue for a fanout stage, derived from its locked source artifact."""
     spec = row['fanout']
     data = artifact(run, state, spec['source'])
+    if spec.get('mode') == 'per_shot':
+        return [{'item': 'PROMPT-' + it['id'], 'kind': 'video_prompt', 'shot_id': it['id'], 'size': ''}
+                for it in data['items']]
     if spec['source'] == 'assets':
         kinds = set(spec.get('select_kinds', []))
         flag = spec.get('reference_flag')
@@ -247,18 +252,24 @@ def dispatch_item(run, state, workflow, row, item):
     queue = {q['item']: q for q in fanout_queue(run, state, row)}
     require(set(queue) == set(entry['item_states']), 'fanout source changed after queue was built')
     spec = queue[item]
-    skill = row['skill']
+    skill = row['fanout'].get('skill_by_kind', {}).get(spec['kind'], row['skill'])
     lock = read(run / 'standard/skills.lock.json')
     require(tree_digest(run / 'standard/skills' / skill) == lock[skill], 'skill hash mismatch')
     task_id = 'TASK-' + uuid.uuid4().hex
+    fanout = {'item': item, 'kind': spec['kind']}
+    if row.get('item_artifact', 'media_item') == 'media_item':
+        fanout.update({'size': spec['size'], 'target_file': f"media/{row['id']}/{item}.png",
+                       'profile': workflow.get('media_profile', {})})
+    else:
+        fanout['shot_id'] = spec['shot_id']
     packet = {'task_id': task_id, 'stage': row['id'], 'role': row['role'], 'skill': skill,
               'skill_sha256': lock[skill], 'skill_path': str((run / 'standard/skills' / skill / 'SKILL.md').resolve()),
-              'artifact_type': 'media_item', 'context_mode': 'fresh', 'inputs': {}, 'input_refs': {},
+              'artifact_type': row.get('item_artifact', 'media_item'), 'context_mode': 'fresh', 'inputs': {}, 'input_refs': {},
               'output_root': str((run / 'work' / task_id).resolve()), 'review_target': None, 'review_criteria': [],
-              'fanout': {'item': item, 'kind': spec['kind'], 'size': spec['size'],
-                         'target_file': f"media/{row['id']}/{item}.png",
-                         'profile': workflow.get('media_profile', {})},
-              'scope': 'Generate exactly one image for this item at the target file; write only candidate.json and receipt.json under output_root.'}
+              'fanout': fanout,
+              'scope': ('Generate exactly one image for this item at the target file; write only candidate.json and receipt.json under output_root.'
+                        if 'target_file' in fanout else
+                        'Write the text artifact for this single item; write only candidate.json and receipt.json under output_root.')}
     for key in row['inputs']:
         if key == row['fanout']['source']:
             continue
@@ -421,12 +432,16 @@ def submit(run, task_id):
         if row.get('reviews'):
             target = row['reviews']
             review_check(candidate, task['inputs'][target], task['input_hashes'][target], row['criteria'])
-        elif row.get('fanout'):
+        elif row.get('fanout') and row.get('item_artifact', 'media_item') == 'media_item':
             media_item_check(candidate)
             require(candidate['item'] == task['fanout']['item'], 'candidate item mismatch')
             require(candidate['file'] == task['fanout']['target_file'], 'candidate file must be the packet target file')
             media_path = inside(run, candidate['file'], True)
             require(digest(media_path) == candidate['sha256'], 'media file hash mismatch')
+        elif row.get('fanout'):
+            video_prompt_check(candidate)
+            require(candidate['item'] == task['fanout']['item'], 'candidate item mismatch')
+            require(candidate['shot_id'] == task['fanout']['shot_id'], 'candidate shot mismatch')
         else:
             artifact_check(candidate, row['artifact_type'], task['inputs'])
         revision = 1 + sum(x['stage'] == row['id'] for x in state['history'])
@@ -440,17 +455,25 @@ def submit(run, task_id):
             stage_entry = state['stages'][row['id']]
             item = task['fanout']['item']
             stage_entry['item_states'][item].update(status='done')
-            stage_entry['results'][item] = {'item': item, 'kind': task['fanout']['kind'],
-                                            'file': candidate['file'], 'sha256': candidate['sha256'],
-                                            'prompt': candidate['prompt'], 'size': task['fanout']['size'],
-                                            'model': candidate.get('model') or task['fanout']['profile'].get('model', ''),
-                                            'quality': candidate.get('quality') or task['fanout']['profile'].get('quality', '')}
+            if row.get('item_artifact', 'media_item') == 'media_item':
+                stage_entry['results'][item] = {'item': item, 'kind': task['fanout']['kind'],
+                                                'file': candidate['file'], 'sha256': candidate['sha256'],
+                                                'prompt': candidate['prompt'], 'size': task['fanout']['size'],
+                                                'model': candidate.get('model') or task['fanout']['profile'].get('model', ''),
+                                                'quality': candidate.get('quality') or task['fanout']['profile'].get('quality', '')}
+            else:
+                stage_entry['results'][item] = dict(candidate)
             pending = [key for key, cell in stage_entry['item_states'].items() if cell['status'] != 'done']
             if not pending:
-                assembled = {'type': 'media', 'stage': row['id'], 'source': row['fanout']['source'],
-                             'profile': workflow.get('media_profile', {}),
-                             'items': [stage_entry['results'][key] for key in sorted(stage_entry['results'])]}
-                media_check(assembled, set(stage_entry['item_states']))
+                if row.get('item_artifact', 'media_item') == 'media_item':
+                    assembled = {'type': 'media', 'stage': row['id'], 'source': row['fanout']['source'],
+                                 'profile': workflow.get('media_profile', {}),
+                                 'items': [stage_entry['results'][key] for key in sorted(stage_entry['results'])]}
+                    media_check(assembled, set(stage_entry['item_states']))
+                else:
+                    assembled = {'type': 'fanout_set', 'stage': row['id'], 'source': row['fanout']['source'],
+                                 'items': [stage_entry['results'][key] for key in sorted(stage_entry['results'])]}
+                    fanout_set_check(assembled, set(stage_entry['item_states']))
                 revision_a = 1 + sum(x['stage'] == row['id'] for x in state['history'])
                 dest_a = run / 'artifacts' / row['id'] / f'{revision_a}-assembled.json'
                 write(dest_a, assembled)

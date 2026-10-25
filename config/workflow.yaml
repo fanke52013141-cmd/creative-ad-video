@@ -95,6 +95,9 @@ stages:
         character: 1024x1536
         space: 1280x720
       default_size: 1024x1024
+      skill_by_kind:
+        character: character-visual-design
+        space: scene-visual-design
   - id: asset_media_review
     media: true
     skill: production-review
@@ -116,6 +119,8 @@ stages:
       source: storyboard
       group_by: scene_id
       default_size: 1280x720
+      skill_by_kind:
+        board: storyboard-panel-prompts
   - id: board_media_review
     media: true
     skill: production-review
@@ -125,4 +130,25 @@ stages:
     depends_on: [board_media]
     reviews: board_media
     criteria: [coverage, prompt_fidelity, constraint_compliance]
+    human_gate: true
+  - id: video_prompts
+    media: true
+    skill: video-shot-prompts
+    role: video-prompt-writer
+    artifact_type: fanout_set
+    item_artifact: video_prompt
+    inputs: [brief, style, storyboard, edit_sound, board_media]
+    depends_on: [board_media_review, edit_sound_review]
+    fanout:
+      source: storyboard
+      mode: per_shot
+  - id: video_prompts_review
+    media: true
+    skill: production-review
+    role: reviewer
+    artifact_type: review
+    inputs: [brief, storyboard, video_prompts]
+    depends_on: [video_prompts]
+    reviews: video_prompts
+    criteria: [coverage, shot_fidelity, camera_sound_binding]
     human_gate: true

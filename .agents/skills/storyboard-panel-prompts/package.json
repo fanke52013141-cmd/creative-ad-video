@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "maturity": "draft",
+  "behavioral_evaluation": "pending",
+  "scope": "preproduction_text",
+  "provenance": {
+    "source_repo": "https://github.com/fanke52013141-cmd/skill_backup_repo",
+    "source_commit": "59abbc3253f6c787d2ebf86e352ff70a30f9f3f0",
+    "source_skill": "分镜板提示词",
+    "source_version": "1.0.0",
+    "source_status": "draft",
+    "note": "方法知识包原样引入；触发名改为本仓库 slug，输出契约以 docs/contracts.md 为准"
+  }
+}

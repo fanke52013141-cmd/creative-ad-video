@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "镜头组输入",
+  "type": "object",
+  "required": [
+    "video_id",
+    "scene_id",
+    "shots"
+  ],
+  "properties": {
+    "video_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scene_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "duration_seconds": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "aspect_ratio": {
+      "enum": [
+        "16:9",
+        "9:16"
+      ]
+    },
+    "shots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "shot_id",
+          "framing",
+          "camera_move",
+          "action_desc",
+          "assets"
+        ],
+        "properties": {
+          "shot_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string"
+          },
+          "framing": {
+            "type": "string",
+            "minLength": 1
+          },
+          "camera_move": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action_desc": {
+            "type": "string",
+            "minLength": 1
+          },
+          "assets": {
+            "type": "object",
+            "properties": {
+              "characters": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "scenes": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "key_props": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "is_key_item"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "is_key_item": {
+                      "type": "boolean"
+                    },
+                    "recurrence_count": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

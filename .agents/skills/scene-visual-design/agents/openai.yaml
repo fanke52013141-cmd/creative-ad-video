@@ -1,0 +1,4 @@
+interface:
+  display_name: "场景视觉设计"
+  short_description: "生成同一地点的场景主视图与四宫格提示词，锁定空间结构、光源和环境叙事。"
+  default_prompt: "请使用 $场景视觉设计，根据我提供的材料生成对应的专业文字产物。"
