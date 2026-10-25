@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-24 - 媒体扇出层全链路真实试用
+
+### Changed
+- [trial] `--media` run 端到端：文本 10 阶段 + asset_media 4 项 + board_media 5 板 + 两份媒体评审全部 accepted，交付包含 9 张 SHA256 绑定的参考图（delivery_level: preproduction_text_and_reference_media）。记录见 `docs/development-status.md`。
+- [trial] 单项修订回环首次真实触发：首轮板图评审（真实目检）判 revise（P1：肢体接触违背锁定、道具空间漂移），引擎只重开被点名三板、兄弟板保留；修订版复审 pass。
+- [skill] generate-media 升级 `initial_real_trial_passed`（9 项生成 + 3 项修订重生成，一任务一图零违例）。实测缺陷模式登记：双人接触动作的肢体粘连、跨板道具位置/形制漂移。
+
+### Compatibility
+- 无代码变更；run 与包在仓库外。
+
 ## 2026-10-24 - 媒体扇出层（逐项子 Agent 生成）
 
 ### Added

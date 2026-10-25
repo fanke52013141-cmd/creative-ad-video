@@ -1,6 +1,13 @@
 {
   "version": "0.1.0",
   "maturity": "baseline",
-  "behavioral_evaluation": "pending",
-  "scope": "preproduction_reference_media"
+  "behavioral_evaluation": "initial_real_trial_passed",
+  "scope": "preproduction_reference_media",
+  "last_trial": {
+    "date": "2026-10-24",
+    "run": "video-flow-runs/shortfilm-media (outside repo)",
+    "route": "media fanout: 4 asset items + 5 board items, gpt-image-2.5-flare-vip low",
+    "outcome": "pass",
+    "notes": "9 items generated one-task-one-image by fresh sub-agents; hash-bound into manifest and packaged; revise loop reopened exactly the cited 3 boards and repairs passed re-review. Known failure modes: limb fusion on two-person contact beats, prop location/form drift across boards; mitigations (geometric gap constraints, per-board anchors, worker self-inspection) validated in revision round."
+  }
 }
